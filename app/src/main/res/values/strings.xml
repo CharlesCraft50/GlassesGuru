@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">GlassesGuru</string>
+    <string name="see_details_text"><u>See Details</u></string>
+    <string name="recommendation_text">AI Recommendation</string>
+    <string name="see_products_text">See Products</string>
+    <string name="glasses_brand_text"><i>Default Brand</i></string>
+    <string name="glasses_title_text"><b>Default Title</b></string>
+    <string name="photo">Image View</string>
+    <string name="delete">Delete button</string>
+    <string name="back">Back button</string>
+    <string name="back_button">Back button</string>
+    <string name="last_photo">Last photo</string>
+
+    <string-array name="face_types_array">
+        <item>Face Type</item>
+        <item>Round</item>
+        <item>Heart</item>
+        <item>Oval</item>
+        <item>Square</item>
+        <item>Long</item>
+    </string-array>
+</resources>

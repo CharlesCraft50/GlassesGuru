@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:id="@+id/glasses_card">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp">
+
+            <ImageView
+                android:id="@+id/glassesImage"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:padding="5dp"
+                android:src="@drawable/glasses_1"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/glassesTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/glasses_title_text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                app:layout_constraintStart_toEndOf="@+id/glassesImage"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/glassesBrand"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/glasses_brand_text"
+                app:layout_constraintStart_toStartOf="@+id/glassesTitle"
+                app:layout_constraintTop_toBottomOf="@+id/glassesTitle" />
+
+            <TextView
+                android:id="@+id/glassesDescription"
+                android:layout_width="280dp"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="4"
+                android:singleLine="false"
+                android:text="This is a default description for this glasses type and it is long for its purpose is to be elipssis. This is a default description for this glasses type and it is long for its purpose is to be elipssis. This is a default description for this glasses type and it is long for its purpose is to be elipssis. This is a default description for this glasses type and it is long for its purpose is to be elipssis"
+                app:layout_constraintStart_toStartOf="@+id/glassesBrand"
+                app:layout_constraintTop_toBottomOf="@+id/glassesBrand" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/see_details_text"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:id="@+id/glassesSeeDetailsText"
+                app:layout_constraintTop_toBottomOf="@+id/glassesDescription" />
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.cardview.widget.CardView>
+
+</LinearLayout>
