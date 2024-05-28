@@ -1,12 +1,10 @@
 package com.example.glassesguru;
 
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -61,7 +59,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
         public PhotoViewHolder(View itemView) {
             super(itemView);
             photoImageView = itemView.findViewById(R.id.photo_image_view);
-            deleteButton = itemView.findViewById(R.id.delete_button);
+            deleteButton = itemView.findViewById(R.id.close_recommendation_Button);
         }
     }
 }

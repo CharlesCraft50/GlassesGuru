@@ -1,0 +1,46 @@
+<!-- dialog_checkbox_layout.xml -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/frame_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Glasses" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/temple_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Glasses Temples" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/temple_right_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Right Temple" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/temple_left_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Left Temple" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/auto_hide_temple_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Auto Hide Temples" />
+
+    <Button
+        android:id="@+id/ok_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/black_semi_transparent"
+        android:text="OK"
+        android:textColor="@color/white" />
+
+</LinearLayout>

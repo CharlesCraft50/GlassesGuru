@@ -1,0 +1,10 @@
+<!-- res/drawable/face_shape_round.xml -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M100,0 A100,100 0 1,1 100,200 A100,100 0 1,1 100,0" />
+</vector>

@@ -64,7 +64,7 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
                 String newGlassesType = glasses_frame_type.get(position);
                 String newPads = pads_obj_name.get(position);
                 faceActivityInstance.updateGlassesModel(newModel, newTemple, newLenses, newGlassesType, newPads);
-                faceActivityInstance.toggleLoadingScreen();
+                faceActivityInstance.capture_button.startLoadingAnimation();
             }
         });
     }

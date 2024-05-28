@@ -1,0 +1,10 @@
+<!-- res/drawable/face_shape_heart.xml -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:fillColor="#FF69B4"
+        android:pathData="M100,30 C130,0 200,60 100,150 C0,60 70,0 100,30 Z" />
+</vector>

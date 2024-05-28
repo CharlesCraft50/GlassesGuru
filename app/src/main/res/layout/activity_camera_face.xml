@@ -384,31 +384,80 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="30dp"
-        android:padding="8dp"
+        android:layout_margin="10dp"
         android:visibility="gone"
-        android:orientation="vertical"
-        android:background="@color/light_gray_semi_transparent"
+        android:id="@+id/recommendation_pop_up"
+        android:background="@color/pale_black_semi_transparent"
         app:layout_constraintBottom_toTopOf="@+id/constraintLayout"
         app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cardView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#9D394E63"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/textView3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:text="Recommendations"
+                android:textColor="@color/white"
+                app:layout_constraintEnd_toStartOf="@+id/close_recommendation_Button"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ImageButton
+                android:id="@+id/close_recommendation_Button"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentEnd="true"
+                android:layout_margin="5dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/delete"
+                android:src="@android:drawable/ic_delete"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <ImageView
+            android:id="@+id/face_shape_ImageView"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_margin="5dp"
+            android:background="@color/black_semi_transparent"
+            android:padding="8dp"
+            app:layout_constraintBottom_toBottomOf="@+id/face_shape_TextView"
+            app:layout_constraintStart_toEndOf="@+id/face_shape_TextView"
+            app:layout_constraintTop_toTopOf="@+id/face_shape_TextView" />
+
         <TextView
+            android:id="@+id/face_shape_TextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Recommendations"/>
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:padding="5dp"
             android:text="Face Shape"
-            />
+            android:textColor="@color/yellow"
+            app:layout_constraintTop_toBottomOf="@+id/cardView"
+            tools:layout_editor_absoluteX="8dp" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:id="@+id/face_shape_description_TextView"
+            android:layout_width="134dp"
             android:layout_height="wrap_content"
-            android:text="Rectangular frame"
-            />
+            android:padding="8dp"
+            android:text="Rectangular frame or Wayfarer frame"
+            android:textColor="@color/white"
+            app:layout_constraintTop_toBottomOf="@+id/face_shape_TextView"
+            tools:layout_editor_absoluteX="8dp" />
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
