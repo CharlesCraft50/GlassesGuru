@@ -17,6 +17,34 @@
         android:layout_height="wrap_content"
         android:text="Glasses Temple" />
 
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/temple_hinge_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="Glasses Temple Hinge" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/temple_tip_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="Glasses Temple Tip" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/pad_arms_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="Glasses Pad Arms" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/lenses_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="Lenses" />
+
     <Button
         android:id="@+id/ok_button"
         android:layout_width="wrap_content"

@@ -20,6 +20,7 @@ import android.opengl.GLException;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
@@ -71,6 +72,8 @@ import com.google.ar.core.AugmentedFace.RegionType;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.IntBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -121,8 +124,13 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private final ObjectRenderer leftEarObject = new ObjectRenderer();
     private final ObjectRenderer rightTempleObject = new ObjectRenderer();
     private final ObjectRenderer leftTempleObject = new ObjectRenderer();
+    private final ObjectRenderer rightTempleTipObject = new ObjectRenderer();
+    private final ObjectRenderer leftTempleTipObject = new ObjectRenderer();
+    private final ObjectRenderer rightHingeObject = new ObjectRenderer();
+    private final ObjectRenderer leftHingeObject = new ObjectRenderer();
     private final ObjectRenderer lensesObject = new ObjectRenderer();
     private final ObjectRenderer padsObject = new ObjectRenderer();
+    private final ObjectRenderer padsArmsObject = new ObjectRenderer();
     private final ObjectRenderer eyesObject = new ObjectRenderer();
     // Temporary matrix allocated here to reduce number of allocations for each frame.
     float[] offsetMatrix = new float[16];
@@ -137,9 +145,12 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private float scaleFactor = 1.0f;
     private boolean shownGlassesOptions = false;
     private boolean glassesVisible = true;
+    private boolean lensesVisible = true;
     private boolean templeVisible = true;
     private boolean rightTempleVisible = true;
     private boolean leftTempleVisible = true;
+    private boolean rightTempleTipVisible = true;
+    private boolean leftTempleTipVisible = true;
     private boolean autoHideTemple = true;
     TextView debug_x;
     TextView debug_y;
@@ -198,7 +209,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     ImageView capture_image_ImageView;
     private ImageButton replay_tutorial_Button;
     private float rotationAngle = 0.0f;
-    private String templeModel = "glasses_1_temple";
+    private String templeModel = "glasses_1_temple, glasses_1_temple_tip";
     private String lensesModel = "";
     private String glassesType = "";
     private String padsModel = "";
@@ -211,7 +222,14 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private ImageButton close_recommendation_Button;
     private boolean isRecommendationPopupVisible = false;
     private boolean isFrameColorSelected = true;
+    private boolean isLensesColorSelected = false;
     private boolean isTempleColorSelected = true;
+    private boolean isTempleTipColorSelected = false;
+    private boolean isTempleHingeColorSelected = false;
+    private boolean isPadArmsColorSelected = false;
+    String[] templeParts = new String[]{""};
+    String[] padParts = new String[]{""};
+    private boolean isPadArmsExists = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -501,7 +519,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesImage.add(R.drawable.glasses_1);
         originalGlassesTitle.add("Glasses 1");
         originalGlassesObjName.add("glasses_1_frame.obj");
-        originalTempleObjName.add("glasses_1_temple");
+        originalTempleObjName.add("glasses_1_temple, glasses_1_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Rectangular frame, Angular frame");
         originalGlassesType.add("Eyeglasses");
@@ -511,8 +529,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesImage.add(R.drawable.glasses_2);
         originalGlassesTitle.add("Glasses 2");
         originalGlassesObjName.add("glasses_2_frame.obj");
-        originalTempleObjName.add("");
-        originalLensesObjName.add("");
+        originalTempleObjName.add("glasses_2_temple, glasses_2_temple_tip");
+        originalLensesObjName.add("glasses_2_lenses.obj:albedo_4");
         originalGlassesFrameType.add("Sunglasses, Wayfarer frame");
         originalGlassesType.add("Sunglasses");
         originalPadsObjName.add("");
@@ -521,7 +539,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesImage.add(R.drawable.glasses_3);
         originalGlassesTitle.add("Glasses 3");
         originalGlassesObjName.add("glasses_3_frame.obj");
-        originalTempleObjName.add("glasses_3_temple");
+        originalTempleObjName.add("glasses_3_temple, glasses_3_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame");
         originalGlassesType.add("Eyeglasses");
@@ -531,7 +549,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesImage.add(R.drawable.glasses_4);
         originalGlassesTitle.add("Glasses 4");
         originalGlassesObjName.add("glasses_4_frame.obj");
-        originalTempleObjName.add("glasses_4_temple");
+        originalTempleObjName.add("glasses_4_temple, glasses_4_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame, Oval frame");
         originalGlassesType.add("Eyeglasses");
@@ -541,7 +559,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesImage.add(R.drawable.glasses_5);
         originalGlassesTitle.add("Glasses 5");
         originalGlassesObjName.add("glasses_5_frame.obj");
-        originalTempleObjName.add("glasses_5_temple");
+        originalTempleObjName.add("glasses_5_temple, glasses_5_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Rectangular frame, Angular frame");
         originalGlassesType.add("Eyeglasses");
@@ -550,8 +568,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesId.add("6");
         originalGlassesImage.add(R.drawable.glasses_6);
         originalGlassesTitle.add("Glasses 6");
-        originalGlassesObjName.add("glasses_6_frame.obj");
-        originalTempleObjName.add("glasses_6_temple");
+        originalGlassesObjName.add("glasses_6_frame.obj:albedo_2");
+        originalTempleObjName.add("glasses_6_temple, glasses_6_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame, Oval frame");
         originalGlassesType.add("Eyeglasses");
@@ -561,7 +579,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesImage.add(R.drawable.glasses_7);
         originalGlassesTitle.add("Glasses 7");
         originalGlassesObjName.add("glasses_7_frame.obj");
-        originalTempleObjName.add("glasses_7_temple");
+        originalTempleObjName.add("glasses_7_temple, glasses_7_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Wayfarer frame");
         originalGlassesType.add("Eyeglasses");
@@ -571,7 +589,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesImage.add(R.drawable.glasses_8);
         originalGlassesTitle.add("Glasses 8");
         originalGlassesObjName.add("glasses_8_frame.obj");
-        originalTempleObjName.add("glasses_8_temple");
+        originalTempleObjName.add("glasses_8_temple, glasses_8_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Rectangular frame, Angular frame");
         originalGlassesType.add("Eyeglasses");
@@ -581,7 +599,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesImage.add(R.drawable.glasses_9);
         originalGlassesTitle.add("Glasses 9");
         originalGlassesObjName.add("glasses_9_frame.obj");
-        originalTempleObjName.add("glasses_9_temple");
+        originalTempleObjName.add("glasses_9_temple, glasses_9_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Rectangular frame, Angular frame");
         originalGlassesType.add("Eyeglasses");
@@ -591,7 +609,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesImage.add(R.drawable.glasses_10);
         originalGlassesTitle.add("Glasses 10");
         originalGlassesObjName.add("glasses_10_frame.obj");
-        originalTempleObjName.add("glasses_10_temple");
+        originalTempleObjName.add("glasses_10_temple, glasses_10_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame");
         originalGlassesType.add("Eyeglasses");
@@ -601,11 +619,11 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesImage.add(R.drawable.glasses_11);
         originalGlassesTitle.add("Glasses 11");
         originalGlassesObjName.add("glasses_11_frame.obj");
-        originalTempleObjName.add("glasses_11_temple");
+        originalTempleObjName.add("glasses_11_temple:albedo_3, glasses_11_temple_tip, glasses_11_temple_hinge:albedo_3");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame, Oval frame");
         originalGlassesType.add("Eyeglasses");
-        originalPadsObjName.add("");
+        originalPadsObjName.add("glasses_11_pads.obj, glasses_11_pads_arms.obj:albedo_3");
 
         // Initially show all glasses
         filteredGlassesId.addAll(originalGlassesId);
@@ -764,8 +782,15 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 }
                 configureSession();
 
-            } catch (UnavailableArcoreNotInstalledException
-                     | UnavailableUserDeclinedInstallationException e) {
+            } catch (UnavailableArcoreNotInstalledException e) {
+                // Attempt to install ARCore via custom APK
+                if (!isArCoreInstalled()) {
+                    installArCore();
+                    return;
+                }
+                message = "Please install ARCore";
+                exception = e;
+            } catch (UnavailableUserDeclinedInstallationException e) {
                 message = "Please install ARCore";
                 exception = e;
             } catch (UnavailableApkTooOldException e) {
@@ -801,6 +826,43 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         surfaceView.onResume();
         displayRotationHelper.onResume();
     }
+
+    private boolean isArCoreInstalled() {
+        try {
+            getPackageManager().getPackageInfo("com.google.ar.core", 0);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void installArCore() {
+        try {
+            // Copy ARCore APK from assets to a temporary location
+            InputStream inputStream = getAssets().open("arcore.apk");
+            File tempFile = new File(getExternalFilesDir(null), "arcore.apk");
+            copyFile(inputStream, new FileOutputStream(tempFile));
+
+            // Install the APK
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.fromFile(tempFile), "application/vnd.android.package-archive");
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void copyFile(InputStream in, OutputStream out) throws IOException {
+        byte[] buffer = new byte[1024];
+        int read;
+        while ((read = in.read(buffer)) != -1) {
+            out.write(buffer, 0, read);
+        }
+        in.close();
+        out.close();
+    }
+
 
     @Override
     public void onPause() {
@@ -869,7 +931,13 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             leftTempleObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
             leftTempleObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
 
+            rightTempleTipObject.createOnGlThread(this, "models/glasses/glasses_1_temple_tip_right.obj", "models/glasses/albedo.png");
+            rightTempleTipObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
+            rightTempleTipObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
 
+            leftTempleTipObject.createOnGlThread(this, "models/glasses/glasses_1_temple_tip_left.obj", "models/glasses/albedo.png");
+            leftTempleTipObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
+            leftTempleTipObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
 
         } catch (IOException e) {
             Log.e(TAG, "Failed to read an asset file", e);
@@ -1045,22 +1113,125 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
                 if (eyesObjectNeedsCreation) {
                     try {
+
                         // Create the eyesObject
-                        eyesObject.createOnGlThread(this, "models/glasses/" + glassesModel, "models/glasses/albedo.png");
-                        if(templeModel != "") {
-                            rightTempleObject.createOnGlThread(this, "models/glasses/" + templeModel + "_right.obj", "models/glasses/albedo.png");
-                            leftTempleObject.createOnGlThread(this, "models/glasses/" + templeModel + "_left.obj", "models/glasses/albedo.png");
+                        String glassesModelPath = "models/glasses/" + glassesModel.trim();
+                        String glassesModelAlbedo = "models/glasses/albedo.png";
+                        if (glassesModel.contains(":")) {
+                            String[] glassesModelComponents = glassesModel.split(":");
+                            glassesModelPath = "models/glasses/" + glassesModelComponents[0].trim();
+                            glassesModelAlbedo = "models/glasses/" + glassesModelComponents[1].trim() + ".png";
                         }
 
-                        if(padsModel != "") {
-                            padsObject.createOnGlThread(this, "models/glasses/" + padsModel, "models/glasses/albedo_2.png");
+                        eyesObject.createOnGlThread(this, glassesModelPath, glassesModelAlbedo);
+
+
+                        if (!templeModel.isEmpty()) {
+                            templeParts = templeModel.contains(",") ? templeModel.split(",") : new String[]{templeModel};
+
+                            String templePart = templeParts[0].trim();
+                            String templeTipPart = templeParts.length > 1 ? templeParts[1].trim() : null;
+                            String hingePart = templeParts.length > 2 ? templeParts[2].trim() : null;
+
+                            // Handle temple part
+                            String templePartPath = "models/glasses/" + templePart + "_right.obj";
+                            String templePartAlbedo = "models/glasses/albedo.png";
+                            if (templePart.contains(":")) {
+                                String[] templePartComponents = templePart.split(":");
+                                templePartPath = "models/glasses/" + templePartComponents[0].trim() + "_right.obj";
+                                templePartAlbedo = "models/glasses/" + templePartComponents[1].trim() + ".png";
+                            }
+
+                            rightTempleObject.createOnGlThread(this, templePartPath, templePartAlbedo);
+                            leftTempleObject.createOnGlThread(this, templePartPath.replace("_right", "_left"), templePartAlbedo);
+
+                            // Handle temple tip part
+                            if (templeTipPart != null) {
+
+                                String templeTipPartPath = "models/glasses/" + templeTipPart + "_right.obj";
+                                String templeTipPartAlbedo = "models/glasses/albedo.png";
+                                if (templeTipPart.contains(":")) {
+                                    String[] templeTipPartComponents = templeTipPart.split(":");
+                                    templeTipPartPath = "models/glasses/" + templeTipPartComponents[0].trim() + "_right.obj";
+                                    templeTipPartAlbedo = "models/glasses/" + templeTipPartComponents[1].trim() + ".png";
+                                }
+
+                                rightTempleTipObject.createOnGlThread(this, templeTipPartPath, templeTipPartAlbedo);
+
+                                leftTempleTipObject.createOnGlThread(this, templeTipPartPath.replace("_right", "_left"), templeTipPartAlbedo);
+                            }
+
+                            // Handle hinge part
+                            if (hingePart != null) {
+                                String hingePartRightPath = "models/glasses/" + hingePart + "_right.obj";
+                                String hingePartLeftPath = "models/glasses/" + hingePart + "_left.obj";
+                                String hingePartAlbedo = "models/glasses/albedo.png";
+                                if (hingePart.contains(":")) {
+                                    String[] hingePartComponents = hingePart.split(":");
+                                    hingePartRightPath = "models/glasses/" + hingePartComponents[0].trim() + "_right.obj";
+                                    hingePartLeftPath = "models/glasses/" + hingePartComponents[0].trim() + "_left.obj";
+                                    hingePartAlbedo = "models/glasses/" + hingePartComponents[1].trim() + ".png";
+                                }
+
+                                rightHingeObject.createOnGlThread(this, hingePartRightPath, hingePartAlbedo);
+                                leftHingeObject.createOnGlThread(this, hingePartLeftPath, hingePartAlbedo);
+                            }
+                        }
+
+                        if (!padsModel.isEmpty()) {
+                            isPadArmsExists = true;
+                            padParts = padsModel.contains(",") ? padsModel.split(",") : new String[]{padsModel};
+
+                            // Create the pads object
+                            String padModelPath = "models/glasses/" + padParts[0].trim();
+                            String padModelAlbedo = "models/glasses/albedo_2.png";
+                            if (padParts[0].contains(":")) {
+                                String[] padModelComponents = padParts[0].split(":");
+                                padModelPath = "models/glasses/" + padModelComponents[0].trim();
+                                padModelAlbedo = "models/glasses/" + padModelComponents[1].trim() + ".png";
+                            }
+
+                            padsObject.createOnGlThread(this, padModelPath, padModelAlbedo);
                             padsObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
                             padsObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
+
+                            // Create the pads arms object if specified
+                            if (padParts.length > 1) {
+                                String padArmsModelPath = "models/glasses/" + padParts[1].trim();
+                                String padArmsModelAlbedo = "models/glasses/albedo_2.png";
+                                if (padParts[1].contains(":")) {
+                                    String[] padArmsModelComponents = padParts[1].split(":");
+                                    padArmsModelPath = "models/glasses/" + padArmsModelComponents[0].trim();
+                                    padArmsModelAlbedo = "models/glasses/" + padArmsModelComponents[1].trim() + ".png";
+                                }
+
+                                padsArmsObject.createOnGlThread(this, padArmsModelPath, padArmsModelAlbedo);
+                                padsArmsObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
+                                padsArmsObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
+                            } else {
+                                isPadArmsExists = false;
+                            }
+                        }
+
+                        if(!lensesModel.isEmpty() ) {
+
+                            // Create the lenses object
+                            String lensesModelPath = "models/glasses/" + lensesModel.trim();
+                            String lensesModelAlbedo = "models/glasses/albedo_2.png";
+                            if (lensesModel.contains(":")) {
+                                String[] lensesModelComponents = lensesModel.split(":");
+                                lensesModelPath = "models/glasses/" + lensesModelComponents[0].trim();
+                                lensesModelAlbedo = "models/glasses/" + lensesModelComponents[1].trim() + ".png";
+                            }
+
+                            lensesObject.createOnGlThread(this, lensesModelPath, lensesModelAlbedo);
+                            lensesObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
+                            lensesObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
                         }
 
                         eyesObjectNeedsCreation = false;
                         capture_button.completeLoading();
-                        loading_screen.setVisibility(View.GONE);
+                        //loading_screen.setVisibility(View.GONE);
                     } catch (IOException e) {
                         Log.e(TAG, "Failed to create eyesObject", e);
                     }
@@ -1079,60 +1250,101 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                     eyesObject.updateModelMatrix(eyesMatrix, scaleFactor);
                     eyesObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
 
-                    if (padsModel != "") {
+                    if (!padsModel.isEmpty()) {
                         padsObject.updateModelMatrix(eyesMatrix, scaleFactor);
                         padsObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                        if(padsModel.length() > 1) {
+                            if(isPadArmsExists) {
+                                padsArmsObject.updateModelMatrix(eyesMatrix, scaleFactor);
+                                padsArmsObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                            }
+                        }
                     }
 
-                    // For the Glasses Hinges
+                    if(lensesVisible) {
+                        if(!lensesModel.isEmpty()) {
+                            lensesObject.updateModelMatrix(eyesMatrix, scaleFactor);
+                            lensesObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                        }
+                    }
+
+
+                    // For the Glasses Temples
 
                     if (templeVisible) {
                         if (!templeModel.isEmpty()) {
+                            templeParts = templeModel.contains(",") ? templeModel.split(",") : new String[] {templeModel};
+                            // Right temple calculations for Auto Hide
+                            float rightTempleScaleFactor = 1.0f;
+                            float rightTempleOffsetFactor = 0.0f;
+                            if (headRotationAngle > 0 && headRotationAngle <= 84) {
+                                rightTempleScaleFactor = 1.0f - (headRotationAngle / 170f);
+                                if (headRotationAngle <= 90f && !templeModel.equals("glasses_3_temple")) {
+                                    rightTempleOffsetFactor = glasses_offset_y;
+                                    rightTempleScaleFactor = 0.0f;
+                                }
+                            }
 
                             // Right Temple Draw
-                            if(rightTempleVisible) {
-                                // Calculate the scaling factor for the right temple
-                                float rightTempleScaleFactor = 1.0f;
-                                float rightTempleOffsetFactor = 0.0f;
-                                if (headRotationAngle > 0 && headRotationAngle <= 84) {
-                                    rightTempleScaleFactor = 1.0f - (headRotationAngle / 170f); // Scale down based on head rotation
-                                    if (headRotationAngle <= 90f) {
-                                        if (templeModel != "glasses_3_temple") {
-                                            rightTempleOffsetFactor = glasses_offset_y;
-                                        }
-                                        rightTempleScaleFactor = 0.0f;
-                                    }
-                                }
-
+                            if (rightTempleVisible) {
                                 rightTempleObject.updateModelMatrix(eyesMatrix, scaleFactor);
-                                // Scale the right temple based on the head rotation angle
-                                if(autoHideTemple) {
+                                if (autoHideTemple) {
                                     rightTempleObject.adjustTempleTransform(rightTempleScaleFactor, rightTempleOffsetFactor);
                                 }
                                 rightTempleObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
                             }
 
-                            // Left Temple Draw
-                            if(leftTempleVisible) {
-                                // Calculate the scaling factor for the left temple
-                                float leftTempleScaleFactor = 1.0f;
-                                float leftTempleOffsetFactor = 0.0f;
-                                if (headRotationAngle >= 93) {
-                                    leftTempleScaleFactor = 1.0f - ((headRotationAngle - 100) / 20f); // Scale down based on head rotation
-                                    if (templeModel != "glasses_3_temple") {
-                                        leftTempleOffsetFactor = glasses_offset_y;
+                            // Right Temple Tip Draw
+                            if (rightTempleTipVisible) {
+                                if (templeParts.length > 1) {
+                                    rightTempleTipObject.updateModelMatrix(eyesMatrix, scaleFactor);
+                                    if (autoHideTemple) {
+                                        rightTempleTipObject.adjustTempleTransform(rightTempleScaleFactor, rightTempleOffsetFactor);
                                     }
+                                    rightTempleTipObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                                }
+                            }
+
+                            // Left temple calculations for Auto Hide
+                            float leftTempleScaleFactor = 1.0f;
+                            float leftTempleOffsetFactor = 0.0f;
+                            if (headRotationAngle >= 93) {
+                                leftTempleScaleFactor = 1.0f - ((headRotationAngle - 100) / 20f);
+                                if (!templeModel.equals("glasses_3_temple")) {
+                                    leftTempleOffsetFactor = glasses_offset_y;
                                     leftTempleScaleFactor = 0.0f;
                                 }
+                            }
 
+                            // Left Temple Draw
+                            if (leftTempleVisible) {
                                 leftTempleObject.updateModelMatrix(eyesMatrix, scaleFactor);
-                                // Scale the left temple based on the head rotation angle
-                                if(autoHideTemple) {
+                                if (autoHideTemple) {
                                     leftTempleObject.adjustTempleTransform(leftTempleScaleFactor, leftTempleOffsetFactor);
                                 }
                                 leftTempleObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
                             }
+
+                            // Left Temple Tip Draw
+                            if (leftTempleTipVisible) {
+                                if (templeParts.length > 1) {
+                                    leftTempleTipObject.updateModelMatrix(eyesMatrix, scaleFactor);
+                                    if (autoHideTemple) {
+                                        leftTempleTipObject.adjustTempleTransform(leftTempleScaleFactor, leftTempleOffsetFactor);
+                                    }
+                                    leftTempleTipObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                                }
+                            }
                         }
+                    }
+
+                    // If hinges is available
+                    if(templeParts.length > 2) {
+                        leftHingeObject.updateModelMatrix(eyesMatrix, scaleFactor);
+                        leftHingeObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+
+                        rightHingeObject.updateModelMatrix(eyesMatrix, scaleFactor);
+                        rightHingeObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
                     }
                 }
             }
@@ -1317,6 +1529,10 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private void toggleGlassesVisibility() {
         glassesVisible = !glassesVisible;
         templeVisible = !templeVisible;
+        if(templeParts.length > 1) {
+            rightTempleTipVisible = !rightTempleTipVisible;
+            leftTempleTipVisible = !leftTempleTipVisible;
+        }
         rightTempleVisible = !rightTempleVisible;
         leftTempleVisible = !leftTempleVisible;
     }
@@ -1325,9 +1541,11 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         templeVisible = !templeVisible;
     }
 
-    public void updateGlassesModel(String newModel, String newHinges, String newLenses, String newGlassesType, String newPads) {
+    public void updateGlassesModel(String newModel, String newTemple, String newLenses, String newGlassesType, String newPads) {
+        templeParts = new String[]{""};
+        padParts = new String[]{""};
         glassesModel = newModel;
-        templeModel = newHinges;
+        templeModel = newTemple;
         lensesModel = newLenses;
         glassesType = newGlassesType;
         padsModel = newPads;
@@ -1360,6 +1578,10 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         View checkboxDialogView = LayoutInflater.from(this).inflate(R.layout.dialog_color_picker, null);
         MaterialCheckBox frameCheckbox = checkboxDialogView.findViewById(R.id.frame_checkbox);
         MaterialCheckBox templeCheckbox = checkboxDialogView.findViewById(R.id.temple_checkbox);
+        MaterialCheckBox templeTipCheckbox = checkboxDialogView.findViewById(R.id.temple_tip_checkbox);
+        MaterialCheckBox templeHingeCheckbox = checkboxDialogView.findViewById(R.id.temple_hinge_checkbox);
+        MaterialCheckBox padArmsCheckbox = checkboxDialogView.findViewById(R.id.pad_arms_checkbox);
+        MaterialCheckBox lensesCheckbox = checkboxDialogView.findViewById(R.id.lenses_checkbox);
         Button okButton = checkboxDialogView.findViewById(R.id.ok_button);
 
         AlertDialog checkboxDialog = new AlertDialog.Builder(this)
@@ -1367,11 +1589,46 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 .create();
 
         frameCheckbox.setChecked(isFrameColorSelected);
+
+        if(!lensesModel.isEmpty()) {
+            lensesCheckbox.setVisibility(View.VISIBLE);
+            lensesCheckbox.setChecked(isLensesColorSelected);
+        }
+
         templeCheckbox.setChecked(isTempleColorSelected);
+        templeHingeCheckbox.setChecked(isTempleHingeColorSelected);
+        padArmsCheckbox.setChecked(isPadArmsColorSelected);
+
+        if(templeParts.length > 1) {
+            templeTipCheckbox.setVisibility(View.VISIBLE);
+            templeTipCheckbox.setChecked(isTempleTipColorSelected);
+        }
+
+        if(templeParts.length > 2) {
+            templeHingeCheckbox.setVisibility(View.VISIBLE);
+            templeHingeCheckbox.setChecked(isTempleHingeColorSelected);
+        }
+
+        if(padParts.length > 1) {
+            padArmsCheckbox.setVisibility(View.VISIBLE);
+            padArmsCheckbox.setChecked(isPadArmsColorSelected);
+        }
 
         okButton.setOnClickListener(v -> {
             isFrameColorSelected = frameCheckbox.isChecked();
+            if(!lensesModel.isEmpty()) {
+                isLensesColorSelected = lensesCheckbox.isChecked();
+            }
             isTempleColorSelected = templeCheckbox.isChecked();
+            if(templeParts.length > 1) {
+                isTempleTipColorSelected = templeTipCheckbox.isChecked();
+            }
+            if(templeParts.length > 2) {
+                isTempleHingeColorSelected = templeHingeCheckbox.isChecked();
+            }
+            if(padParts.length > 1) {
+                isPadArmsColorSelected = padArmsCheckbox.isChecked();
+            }
             checkboxDialog.dismiss();
             showColorPickerDialog();
         });
@@ -1397,10 +1654,29 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                     eyesObject.setCustomColor(customColor);
                 }
 
+                if(isLensesColorSelected) {
+                    lensesObject.setCustomColor(customColor);
+                }
+
+                if(isTempleTipColorSelected && templeParts.length > 1) {
+                        rightTempleTipObject.setCustomColor(customColor);
+                        leftTempleTipObject.setCustomColor(customColor);
+                }
+
+                if(isTempleHingeColorSelected && templeParts.length > 2) {
+                        rightHingeObject.setCustomColor(customColor);
+                        leftHingeObject.setCustomColor(customColor);
+                }
+
+                if(isPadArmsColorSelected && padParts.length > 1) {
+                    padsArmsObject.setCustomColor(customColor);
+                }
+
                 if (isTempleColorSelected) {
                     rightTempleObject.setCustomColor(customColor);
                     leftTempleObject.setCustomColor(customColor);
                 }
+
             }
         });
 
@@ -1411,10 +1687,27 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         previousColor = selectedColor;
         selectedColor = -1;
         eyesObject.clearCustomColor();
+        if(isLensesColorSelected) {
+            lensesObject.clearCustomColor();
+        }
+        if(templeParts.length > 1 && isTempleTipColorSelected) {
+                rightTempleTipObject.clearCustomColor();
+                leftTempleTipObject.clearCustomColor();
+        }
+        if(templeParts.length > 2 && isTempleHingeColorSelected) {
+            rightHingeObject.clearCustomColor();
+            leftHingeObject.clearCustomColor();
+        }
+        if(padParts.length > 1) {
+            padsArmsObject.clearCustomColor();
+        }
         rightTempleObject.clearCustomColor();
         leftTempleObject.clearCustomColor();
         isFrameColorSelected = true;
         isTempleColorSelected = true;
+        isTempleTipColorSelected = false;
+        isTempleHingeColorSelected = false;
+        isPadArmsColorSelected = false;
     }
 
     /*public void toggleLoadingScreen() {
@@ -1438,7 +1731,10 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         MaterialCheckBox templeCheckbox = checkboxDialogView.findViewById(R.id.temple_checkbox);
         MaterialCheckBox rightTempleCheckbox = checkboxDialogView.findViewById(R.id.temple_right_checkbox);
         MaterialCheckBox leftTempleCheckbox = checkboxDialogView.findViewById(R.id.temple_left_checkbox);
+        MaterialCheckBox rightTempleTipCheckbox = checkboxDialogView.findViewById(R.id.temple_tip_right_checkbox);
+        MaterialCheckBox leftTempleTipCheckbox = checkboxDialogView.findViewById(R.id.temple_tip_left_checkbox);
         MaterialCheckBox autoHideTemplesCheckbox = checkboxDialogView.findViewById(R.id.auto_hide_temple_checkbox);
+        MaterialCheckBox lensesCheckbox = checkboxDialogView.findViewById(R.id.lenses_checkbox);
         Button okButton = checkboxDialogView.findViewById(R.id.ok_button);
 
         AlertDialog checkboxDialog = new AlertDialog.Builder(this)
@@ -1446,13 +1742,28 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 .create();
 
         frameCheckbox.setChecked(glassesVisible);
+        if(!lensesModel.isEmpty()) {
+            lensesCheckbox.setVisibility(View.VISIBLE);
+            lensesCheckbox.setChecked(lensesVisible);
+        }
         templeCheckbox.setChecked(templeVisible);
+        if(templeParts.length > 1) {
+            rightTempleTipCheckbox.setVisibility(View.VISIBLE);
+            leftTempleTipCheckbox.setVisibility(View.VISIBLE);
+
+            rightTempleTipCheckbox.setChecked(rightTempleTipVisible);
+            leftTempleTipCheckbox.setChecked(leftTempleTipVisible);
+        }
         rightTempleCheckbox.setChecked(rightTempleVisible);
         leftTempleCheckbox.setChecked(leftTempleVisible);
         autoHideTemplesCheckbox.setChecked(autoHideTemple);
 
         frameCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             templeCheckbox.setChecked(isChecked);
+            if(templeParts.length > 1) {
+                rightTempleTipCheckbox.setChecked(isChecked);
+                leftTempleTipCheckbox.setChecked(isChecked);
+            }
             rightTempleCheckbox.setChecked(isChecked);
             leftTempleCheckbox.setChecked(isChecked);
         });
@@ -1465,8 +1776,15 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
         okButton.setOnClickListener(v -> {
             glassesVisible = frameCheckbox.isChecked();
+            if(!lensesModel.isEmpty()) {
+                lensesVisible = lensesCheckbox.isChecked();
+            }
             templeVisible = templeCheckbox.isChecked();
             rightTempleVisible = rightTempleCheckbox.isChecked();
+            if(templeParts.length > 1) {
+                rightTempleTipVisible = rightTempleTipCheckbox.isChecked();
+                leftTempleTipVisible = leftTempleTipCheckbox.isChecked();
+            }
             leftTempleVisible = leftTempleCheckbox.isChecked();
             autoHideTemple = autoHideTemplesCheckbox.isChecked();
             checkboxDialog.dismiss();

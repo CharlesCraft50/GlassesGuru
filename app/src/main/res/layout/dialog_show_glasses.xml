@@ -12,6 +12,12 @@
         android:text="Glasses" />
 
     <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/lenses_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Lenses" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/temple_checkbox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -28,6 +34,20 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Left Temple" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/temple_tip_right_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="Right Temple Tip" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/temple_tip_left_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="Left Temple Tip" />
 
     <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/auto_hide_temple_checkbox"
