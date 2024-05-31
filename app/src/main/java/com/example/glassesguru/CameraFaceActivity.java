@@ -4,11 +4,16 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PointF;
@@ -19,11 +24,14 @@ import android.opengl.GLES20;
 import android.opengl.GLException;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -74,6 +82,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.IntBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -106,13 +116,14 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
     private static final String TAG = AugmentedFaceRenderer.class.getSimpleName();
     private boolean capture_image = false;
-
+    ProgressDialog progressDialog;
     // Rendering. The Renderers are created here, and initialized when the GL surface is created.
     private GLSurfaceView surfaceView;
-
     private boolean installRequested;
-
+    PrefManager prefManager;
     private Session session;
+    private static final int REQUEST_INSTALL_UNKNOWN_APK = 2;
+    private static final int REQUEST_READ_STORAGE_PERMISSION = 3;
     private final SnackbarHelper messageSnackbarHelper = new SnackbarHelper();
     private DisplayRotationHelper displayRotationHelper;
     private final TrackingStateHelper trackingStateHelper = new TrackingStateHelper(this);
@@ -235,12 +246,6 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_face);
-
-        PrefManager prefManager = new PrefManager(this);
-
-        if (prefManager.isFirstTimeLaunch()) {
-            showTutorial();
-        }
 
         replay_tutorial_Button = findViewById(R.id.replay_tutorial_Button);
         recommendation_pop_up = findViewById(R.id.recommendation_pop_up);
@@ -508,7 +513,15 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == 1) {
+        if (requestCode == REQUEST_INSTALL_UNKNOWN_APK) {
+            if (resultCode == RESULT_OK) {
+                // Permission to install unknown apps granted
+                installArCore();
+            } else {
+                // Permission to install unknown apps denied
+                // Toast.makeText(this, "Permission to install unknown apps denied", Toast.LENGTH_LONG).show();
+            }
+        } else if(requestCode == 1) {
             loadLastPhoto();
         }
     }
@@ -744,6 +757,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         super.onDestroy();
     }
 
+    private static final String APK_URL = "https://github.com/CharlesCraft50/GlassesGuru/releases/download/arcore/arcore.apk";
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -751,15 +766,15 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         if (session == null) {
             Exception exception = null;
             String message = null;
-            try {
-                switch (ArCoreApk.getInstance().requestInstall(this, !installRequested)) {
-                    case INSTALL_REQUESTED:
-                        installRequested = true;
-                        return;
-                    case INSTALLED:
-                        break;
-                }
 
+            // Ensure ARCore is installed via custom APK
+            if (!isArCoreInstalled()) {
+                installArCore();
+                return;
+            }
+
+            // ARCore is now installed, proceed with session creation
+            try {
                 // ARCore requires camera permissions to operate. If we did not yet obtain runtime
                 // permission on Android M and above, now is a good time to ask the user for it.
                 if (!CameraPermissionHelper.hasCameraPermission(this)) {
@@ -782,15 +797,16 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 }
                 configureSession();
 
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
+
             } catch (UnavailableArcoreNotInstalledException e) {
                 // Attempt to install ARCore via custom APK
                 if (!isArCoreInstalled()) {
                     installArCore();
                     return;
                 }
-                message = "Please install ARCore";
-                exception = e;
-            } catch (UnavailableUserDeclinedInstallationException e) {
                 message = "Please install ARCore";
                 exception = e;
             } catch (UnavailableApkTooOldException e) {
@@ -817,6 +833,17 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         // Note that order matters - see the note in onPause(), the reverse applies here.
         try {
             session.resume();
+
+            // Show the tutorial on resume
+            prefManager = new PrefManager(this);
+
+            if (prefManager.isFirstTimeLaunch()) {
+                showTutorial();
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
+            }
+
         } catch (CameraNotAvailableException e) {
             messageSnackbarHelper.showError(this, "Camera not available. Try restarting the app.");
             session = null;
@@ -837,43 +864,130 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     }
 
     private void installArCore() {
-        try {
-            // Copy ARCore APK from assets to a temporary location
-            InputStream inputStream = getAssets().open("arcore.apk");
-            File tempFile = new File(getExternalFilesDir(null), "arcore.apk");
-            copyFile(inputStream, new FileOutputStream(tempFile));
-
-            // Install the APK
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(Uri.fromFile(tempFile), "application/vnd.android.package-archive");
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        } catch (IOException e) {
-            e.printStackTrace();
+        // Check if the app has permission to install unknown apps
+        if (!getPackageManager().canRequestPackageInstalls()) {
+            // Request permission to install unknown apps
+            requestInstallUnknownAppsPermission();
+        } else {
+            // Download and install the APK
+            downloadAndInstallArCore();
         }
     }
 
-    private void copyFile(InputStream in, OutputStream out) throws IOException {
-        byte[] buffer = new byte[1024];
-        int read;
-        while ((read = in.read(buffer)) != -1) {
-            out.write(buffer, 0, read);
-        }
-        in.close();
-        out.close();
+    private void requestInstallUnknownAppsPermission() {
+        // Show a dialog to prompt the user to grant permission
+        new AlertDialog.Builder(this)
+                .setMessage("GlassesGuru requires permission to install ARCore from an unknown source.")
+                .setPositiveButton("Grant Permission", (dialog, which) -> {
+                    // Launch the settings activity to request permission
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                            .setData(Uri.parse("package:" + getPackageName()));
+                    startActivityForResult(intent, REQUEST_INSTALL_UNKNOWN_APK);
+                    dialog.dismiss();
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> {
+                    // User cancelled the permission request
+                    Toast.makeText(this, "Permission denied. ARCore cannot be installed.", Toast.LENGTH_LONG).show();
+                })
+                .show();
     }
 
+    private void downloadAndInstallArCore() {
+        if(progressDialog == null || !progressDialog.isShowing()) {
+            // Show progress dialog while downloading ARCore
+            progressDialog = new ProgressDialog(this);
+            progressDialog.setMessage("Downloading ARCore...");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        if (session != null) {
-            // Note that the order matters - GLSurfaceView is paused first so that it does not try
-            // to query the session. If Session is paused before GLSurfaceView, GLSurfaceView may
-            // still call session.update() and get a SessionPausedException.
-            displayRotationHelper.onPause();
-            surfaceView.onPause();
-            session.pause();
+            // Start the installation process
+            installArCore(new OnInstallationListener() {
+                @Override
+                public void onInstallationComplete() {
+                    if (progressDialog != null && progressDialog.isShowing()) {
+                        progressDialog.dismiss();
+                    }
+                }
+
+                @Override
+                public void onInstallationFailed() {
+                    if (progressDialog != null && progressDialog.isShowing()) {
+                        progressDialog.dismiss();
+                    }
+                    Toast.makeText(CameraFaceActivity.this, "Failed to install ARCore", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+
+    private void installArCore(OnInstallationListener listener) {
+        // Execute the task to download and install ARCore
+        new DownloadAndInstallApkTask(listener).execute(APK_URL);
+    }
+
+    interface OnInstallationListener {
+        void onInstallationComplete();
+        void onInstallationFailed();
+    }
+
+    private class DownloadAndInstallApkTask extends AsyncTask<String, Void, File> {
+        private OnInstallationListener listener;
+
+        public DownloadAndInstallApkTask(OnInstallationListener listener) {
+            this.listener = listener;
+        }
+
+        @Override
+        protected File doInBackground(String... urls) {
+            try {
+                URL url = new URL(urls[0]);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.connect();
+
+                InputStream inputStream = connection.getInputStream();
+                File tempFile = new File(getExternalFilesDir(null), "arcore.apk");
+                FileOutputStream outputStream = new FileOutputStream(tempFile);
+
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, length);
+                }
+
+                outputStream.close();
+                inputStream.close();
+                return tempFile;
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to download APK", e);
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(File apkFile) {
+            if (apkFile != null) {
+                installApk(apkFile);
+            } else {
+                listener.onInstallationFailed();
+            }
+        }
+
+        private void installApk(File apkFile) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
+                // Request permission to install unknown apps
+                requestInstallUnknownAppsPermission();
+            } else {
+                // Proceed with installation
+                Uri apkUri = FileProvider.getUriForFile(CameraFaceActivity.this, "com.example.glassesguru.provider", apkFile);
+                Intent intent = new Intent(Intent.ACTION_VIEW)
+                        .setDataAndType(apkUri, "application/vnd.android.package-archive")
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+
+                // Call the installation complete callback
+                listener.onInstallationComplete();
+            }
         }
     }
 
@@ -888,6 +1002,28 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 CameraPermissionHelper.launchPermissionSettings(this);
             }
             finish();
+        }
+        if (requestCode == REQUEST_READ_STORAGE_PERMISSION) {
+            if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
+                new DownloadAndInstallApkTask(new OnInstallationListener() {
+                    @Override
+                    public void onInstallationComplete() {
+                        if (progressDialog != null && progressDialog.isShowing()) {
+                            progressDialog.dismiss();
+                        }
+                    }
+
+                    @Override
+                    public void onInstallationFailed() {
+                        if (progressDialog != null && progressDialog.isShowing()) {
+                            progressDialog.dismiss();
+                        }
+                        Toast.makeText(CameraFaceActivity.this, "Failed to install ARCore", Toast.LENGTH_LONG).show();
+                    }
+                }).execute(APK_URL);
+            } else {
+                Toast.makeText(this, "Permission to read storage denied", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -1411,7 +1547,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             File lastPhoto = files[0];
             Glide.with(this).load(lastPhoto).into(lastPhotoImageView);
         } else {
-            Toast.makeText(this, "No photos found", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "No photos found", Toast.LENGTH_SHORT).show();
         }
     }
 
