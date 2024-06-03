@@ -116,6 +116,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
     private static final String TAG = AugmentedFaceRenderer.class.getSimpleName();
     private boolean capture_image = false;
+    private boolean capture_image_ai = false;
+    private FaceShapeClassifier faceShapeClassifier;
     ProgressDialog progressDialog;
     // Rendering. The Renderers are created here, and initialized when the GL surface is created.
     private GLSurfaceView surfaceView;
@@ -212,7 +214,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private FaceMaskView faceMaskView;
     private Spinner frameTypeSpinner;
     private MultiSelectSpinnerAdapter frameTypeAdapter;
-    private List<String> frameTypes = Arrays.asList("All", "Rectangular frame", "Angular frame", "Wayfarer frame", "Round frame", "Oval frame", "Sunglasses");
+    private List<String> frameTypes = Arrays.asList("All", "Rectangular frame", "Angular frame", "Wayfarer frame", "Round frame", "Oval frame", "Oversize frame", "Sunglasses", "Favorites");
 
     private Spinner face_type_Spinner;
     private ArrayAdapter<CharSequence> face_type_adapter;
@@ -246,6 +248,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_face);
+
+
+        faceShapeClassifier = new FaceShapeClassifier(this);
 
         replay_tutorial_Button = findViewById(R.id.replay_tutorial_Button);
         recommendation_pop_up = findViewById(R.id.recommendation_pop_up);
@@ -544,7 +549,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesObjName.add("glasses_2_frame.obj");
         originalTempleObjName.add("glasses_2_temple, glasses_2_temple_tip");
         originalLensesObjName.add("glasses_2_lenses.obj:albedo_4");
-        originalGlassesFrameType.add("Sunglasses, Wayfarer frame");
+        originalGlassesFrameType.add("Wayfarer frame");
         originalGlassesType.add("Sunglasses");
         originalPadsObjName.add("");
 
@@ -634,7 +639,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalGlassesObjName.add("glasses_11_frame.obj");
         originalTempleObjName.add("glasses_11_temple:albedo_3, glasses_11_temple_tip, glasses_11_temple_hinge:albedo_3");
         originalLensesObjName.add("");
-        originalGlassesFrameType.add("Round frame, Oval frame");
+        originalGlassesFrameType.add("Round frame, Oval frame, Oversize frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("glasses_11_pads.obj, glasses_11_pads_arms.obj:albedo_3");
 
@@ -665,7 +670,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         filteredPadsObjName.clear();
 
         if (selectedFrameTypes.contains("All")) {
-            // If "All" is selected or no frame type is selected, show all glasses
+            // If "All" is selected, show all glasses
             filteredGlassesId.addAll(originalGlassesId);
             filteredGlassesImage.addAll(originalGlassesImage);
             filteredGlassesTitle.addAll(originalGlassesTitle);
@@ -675,77 +680,71 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             filteredGlassesFrameType.addAll(originalGlassesFrameType);
             filteredGlassesType.addAll(originalGlassesType);
             filteredPadsObjName.addAll(originalPadsObjName);
-        } else if(selectedFrameTypes.contains("Sunglasses")) {
-
-                // Filter the glasses based on the selected frame types
-                for (int i = 0; i < originalGlassesId.size(); i++) {
-
-                        boolean isAdded = false;
-                        for (String frameType : selectedFrameTypes) {
-                            if (originalGlassesType.get(i).contains("Sunglasses") && originalGlassesFrameType.get(i).contains(frameType)) {
-                                filteredGlassesId.add(originalGlassesId.get(i));
-                                filteredGlassesImage.add(originalGlassesImage.get(i));
-                                filteredGlassesTitle.add(originalGlassesTitle.get(i));
-                                filteredGlassesObjName.add(originalGlassesObjName.get(i));
-                                filteredTempleObjName.add(originalTempleObjName.get(i));
-                                filteredLensesObjName.add(originalLensesObjName.get(i));
-                                filteredGlassesFrameType.add(originalGlassesFrameType.get(i));
-                                filteredGlassesType.add(originalGlassesType.get(i));
-                                filteredPadsObjName.add(originalPadsObjName.get(i));
-                                isAdded = true;
-                                break;
-                            }
-                        }
-                        // If no glasses match, filtered lists will remain empty
-                        if (!isAdded && selectedFrameTypes.isEmpty()) {
-                            filteredGlassesId.clear();
-                            filteredGlassesImage.clear();
-                            filteredGlassesTitle.clear();
-                            filteredGlassesObjName.clear();
-                            filteredTempleObjName.clear();
-                            filteredLensesObjName.clear();
-                            filteredGlassesFrameType.clear();
-                            filteredGlassesType.clear();
-                            filteredPadsObjName.clear();
-                        }
-
-            }
         } else {
-            // Filter the glasses based on the selected frame types
             for (int i = 0; i < originalGlassesId.size(); i++) {
-                boolean isAdded = false;
+                boolean isFavorite = prefManager != null && prefManager.isFavorite(originalGlassesId.get(i));
+                boolean isSunglasses = originalGlassesType.get(i).contains("Sunglasses");
+                boolean matchesType = false;
+
                 for (String frameType : selectedFrameTypes) {
+                    if (frameType.equals("Favorites") && !isFavorite) {
+                        continue;
+                    }
+                    if (frameType.equals("Sunglasses") && !isSunglasses) {
+                        continue;
+                    }
                     if (originalGlassesFrameType.get(i).contains(frameType)) {
-                        filteredGlassesId.add(originalGlassesId.get(i));
-                        filteredGlassesImage.add(originalGlassesImage.get(i));
-                        filteredGlassesTitle.add(originalGlassesTitle.get(i));
-                        filteredGlassesObjName.add(originalGlassesObjName.get(i));
-                        filteredTempleObjName.add(originalTempleObjName.get(i));
-                        filteredLensesObjName.add(originalLensesObjName.get(i));
-                        filteredGlassesFrameType.add(originalGlassesFrameType.get(i));
-                        filteredGlassesType.add(originalGlassesType.get(i));
-                        filteredPadsObjName.add(originalPadsObjName.get(i));
-                        isAdded = true;
+                        matchesType = true;
                         break;
                     }
                 }
-                // If no glasses match, filtered lists will remain empty
-                if (!isAdded && selectedFrameTypes.isEmpty()) {
-                    filteredGlassesId.clear();
-                    filteredGlassesImage.clear();
-                    filteredGlassesTitle.clear();
-                    filteredGlassesObjName.clear();
-                    filteredTempleObjName.clear();
-                    filteredLensesObjName.clear();
-                    filteredGlassesFrameType.clear();
-                    filteredGlassesType.clear();
-                    filteredPadsObjName.clear();
+
+                if (selectedFrameTypes.size() == 1) {
+                    if (selectedFrameTypes.contains("Favorites") && isFavorite) {
+                        // Only "Favorites" selected, add all favorites
+                        addToFilteredLists(i);
+                    } else if (selectedFrameTypes.contains("Sunglasses") && isSunglasses) {
+                        // Only "Sunglasses" selected
+                        addToFilteredLists(i);
+                    } else if (matchesType) {
+                        // Only one other frame type selected
+                        addToFilteredLists(i);
+                    }
+                } else {
+                    boolean favoritesSelected = selectedFrameTypes.contains("Favorites");
+                    boolean sunglassesSelected = selectedFrameTypes.contains("Sunglasses");
+
+                    if (favoritesSelected && sunglassesSelected && isFavorite && isSunglasses) {
+                        // Both "Favorites" and "Sunglasses" selected
+                        addToFilteredLists(i);
+                    } else if (favoritesSelected && isFavorite && matchesType) {
+                        // "Favorites" and other frame types selected
+                        addToFilteredLists(i);
+                    } else if (sunglassesSelected && isSunglasses && matchesType) {
+                        // "Sunglasses" and other frame types selected
+                        addToFilteredLists(i);
+                    } else if (!favoritesSelected && !sunglassesSelected && matchesType) {
+                        // Only other frame types selected
+                        addToFilteredLists(i);
+                    }
                 }
             }
         }
 
         // Notify the adapter of the changes
         glassesItemCustomAdapter.notifyDataSetChanged();
+    }
+
+    private void addToFilteredLists(int index) {
+        filteredGlassesId.add(originalGlassesId.get(index));
+        filteredGlassesImage.add(originalGlassesImage.get(index));
+        filteredGlassesTitle.add(originalGlassesTitle.get(index));
+        filteredGlassesObjName.add(originalGlassesObjName.get(index));
+        filteredTempleObjName.add(originalTempleObjName.get(index));
+        filteredLensesObjName.add(originalLensesObjName.get(index));
+        filteredGlassesFrameType.add(originalGlassesFrameType.get(index));
+        filteredGlassesType.add(originalGlassesType.get(index));
+        filteredPadsObjName.add(originalPadsObjName.get(index));
     }
 
     @Override
@@ -1366,7 +1365,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                         }
 
                         eyesObjectNeedsCreation = false;
-                        capture_button.completeLoading();
+                        runOnUiThread(() -> {
+                                    capture_button.completeLoading();
+                                });
                         //loading_screen.setVisibility(View.GONE);
                     } catch (IOException e) {
                         Log.e(TAG, "Failed to create eyesObject", e);
@@ -1489,16 +1490,13 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
                 Bitmap capturedBitmap = createBitmapFromGLSurface(0, 0, surfaceView.getWidth(), surfaceView.getHeight(), gl);
                 if (capturedBitmap != null) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            capture_image_ImageView.setImageBitmap(capturedBitmap);
-                            lastPhotoImageView.setImageBitmap(capturedBitmap);
-                        }
+                    runOnUiThread(() -> {
+                        capture_image_ImageView.setImageBitmap(capturedBitmap);
+                        lastPhotoImageView.setImageBitmap(capturedBitmap);
                     });
                     capture_image = false;
-
                     saveBitmapToDevice(capturedBitmap);
+
 
                     // Hide the capture_LinearLayout after 2 seconds
                     new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
@@ -1507,6 +1505,33 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                             capture_LinearLayout.setVisibility(View.GONE);
                         }
                     }, 1000);
+                } else {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(CameraFaceActivity.this, "Error capturing frame", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    capture_image = false;
+                    capture_button.completeLoading();
+
+                    // Hide the capture_LinearLayout after 2 seconds
+                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            capture_LinearLayout.setVisibility(View.GONE);
+                        }
+                    }, 1000);
+                }
+            }
+
+            if(capture_image_ai) {
+                Bitmap capturedBitmap = createBitmapFromGLSurface(0, 0, surfaceView.getWidth(), surfaceView.getHeight(), gl);
+
+                if (capturedBitmap != null) {
+                    detectFaceShape(capturedBitmap);
+
+                    capture_image_ai = false;
                 } else {
                     runOnUiThread(new Runnable() {
                         @Override
@@ -2107,7 +2132,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         faceMaskView.setFacePoints(allPoints);
 
         // Calculate face width and height
-        float faceWidth = getDistance(allPoints.get(0), allPoints.get(allPoints.size() / 2));
+        /*float faceWidth = getDistance(allPoints.get(0), allPoints.get(allPoints.size() / 2));
         float faceHeight = getDistance(allPoints.get(0), allPoints.get(allPoints.size() - 1));
 
         // Infer face shape based on width-to-height ratio and other landmarks
@@ -2133,7 +2158,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             // For example, you might want to show a default model or a message
             // updateGlassesModel(defaultModel);
             Toast.makeText(this, "No glasses available for the selected frame type.", Toast.LENGTH_SHORT).show();
-        }
+        }*/
+
+        capture_image_ai = true;
 
         // Complete any additional actions, such as updating UI elements
         capture_button.completeLoading();
@@ -2196,6 +2223,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             case "Long":
                 recommendedFrames.add("Wide frame");
                 recommendedFrames.add("Oversize frame");
+                face_shape_ImageView.setImageResource(R.drawable.face_shape_long);
                 break;
             default:
                 return "Unknown";
@@ -2228,6 +2256,13 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private void showTutorial() {
         TapTargetSequence sequence = new TapTargetSequence(this)
                 .targets(
+                        TapTarget.forView(findViewById(R.id.glassesCardView), "Select Through Glasses", "Tap to try on different glasses. Long press to add to your favorites.")
+                                .cancelable(false)
+                                .drawShadow(true)
+                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .tintTarget(true)
+                                .transparentTarget(true)
+                                .cancelable(true),
                         TapTarget.forView(findViewById(R.id.ai_recommendation_Button), "AI Button", "This button analyzes your face shape and chooses the best frame for you.")
                                 .cancelable(false)
                                 .drawShadow(true)
@@ -2394,5 +2429,43 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 }
             }
         });
+    }
+
+    private void detectFaceShape(Bitmap bitmap) {
+        if (faceShapeClassifier != null) {
+            String faceShape = faceShapeClassifier.classifyFace(bitmap);
+            runOnUiThread(() -> {
+                if(!faceShapeClassifier.noToast) {
+                    Toast.makeText(CameraFaceActivity.this, faceShape, Toast.LENGTH_LONG).show();
+                } else {
+                    try {
+                        face_type_Spinner.setSelection(face_type_adapter.getPosition(faceShape));
+                        capture_button.startLoadingAnimation();
+                        new Handler().postDelayed(() -> {
+                            if(face_type_Spinner.getSelectedItemPosition() != 0) {
+                                if (!filteredGlassesObjName.isEmpty()) {
+                                    if (filteredGlassesObjName.size() > 1) {
+                                        updateGlassesModel(filteredGlassesObjName.get(1), filteredTempleObjName.get(1), filteredLensesObjName.get(1), filteredGlassesType.get(1), filteredPadsObjName.get(1));
+                                    } else {
+                                        updateGlassesModel(filteredGlassesObjName.get(0), filteredTempleObjName.get(0), filteredLensesObjName.get(0), filteredGlassesType.get(0), filteredPadsObjName.get(0));
+                                    }
+                                } else {
+                                    Toast.makeText(this, "No glasses available for the selected frame type.", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                            capture_button.completeLoading();
+                        }, 100);
+                    } catch (ArrayIndexOutOfBoundsException e) {
+
+                    }
+                }
+            });
+        } else {
+            runOnUiThread(() -> Toast.makeText(CameraFaceActivity.this, "FaceShapeClassifier not initialized", Toast.LENGTH_SHORT).show());
+        }
+    }
+
+    private boolean isFavorite(String glassesId) {
+        return prefManager.isFavorite(glassesId);
     }
 }

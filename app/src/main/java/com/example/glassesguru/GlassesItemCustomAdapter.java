@@ -20,6 +20,7 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
     private ArrayList<Integer> glasses_image;
     private ArrayList<String> glasses_id, glasses_title, glasses_obj_name, temple_obj_name, lenses_obj_name, glasses_frame_type, glasses_type, pads_obj_name;
     private CameraFaceActivity faceActivityInstance;
+    private PrefManager prefManager;
 
     public GlassesItemCustomAdapter(Activity activity, Context context, ArrayList<String> glasses_id, ArrayList<Integer> glasses_image, ArrayList<String> glasses_title, ArrayList<String> glasses_obj_name, ArrayList<String> temple_obj_name, ArrayList<String> lenses_obj_name, ArrayList<String> glasses_frame_type, ArrayList<String> glasses_type, ArrayList<String> pads_obj_name) {
         this.activity = activity;
@@ -33,6 +34,7 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
         this.glasses_frame_type = glasses_frame_type;
         this.glasses_type = glasses_type;
         this.pads_obj_name = pads_obj_name;
+        prefManager = new PrefManager(context);
         if (activity instanceof CameraFaceActivity) {
             faceActivityInstance = (CameraFaceActivity) activity;
         }
@@ -67,6 +69,23 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
                 faceActivityInstance.capture_button.startLoadingAnimation();
             }
         });
+
+        if(prefManager.isFavorite(glasses_id.get(position))) {
+            holder.glassesFavoriteImageView.setVisibility(View.VISIBLE);
+        }
+
+        holder.glassesCardView.setOnLongClickListener(v -> {
+            if(prefManager != null) {
+                if(prefManager.isFavorite(glasses_id.get(position))) {
+                    holder.glassesFavoriteImageView.setVisibility(View.GONE);
+                    prefManager.removeFromFavorites(glasses_id.get(position));
+                } else {
+                    holder.glassesFavoriteImageView.setVisibility(View.VISIBLE);
+                    prefManager.addToFavorites(glasses_id.get(position));
+                }
+            }
+            return true;
+        });
     }
 
     @Override
@@ -75,7 +94,7 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
     }
 
     public class MyViewHolder extends RecyclerView.ViewHolder {
-        ImageView glassesImageView;
+        ImageView glassesImageView, glassesFavoriteImageView;
         TextView glassesTitle;
         LinearLayout glassesCardView;
         public MyViewHolder(@NonNull View itemView) {
@@ -83,6 +102,7 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
             glassesImageView = itemView.findViewById(R.id.glassesImageView);
             glassesTitle = itemView.findViewById(R.id.glassesNameTextView);
             glassesCardView = itemView.findViewById(R.id.glassesCardView);
+            glassesFavoriteImageView = itemView.findViewById(R.id.glassesFavoriteImageView);
         }
     }
 }
