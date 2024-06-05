@@ -2,12 +2,14 @@ package com.example.glassesguru;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,11 +20,11 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
     private Activity activity;
     private Context context;
     private ArrayList<Integer> glasses_image;
-    private ArrayList<String> glasses_id, glasses_title, glasses_obj_name, temple_obj_name, lenses_obj_name, glasses_frame_type, glasses_type, pads_obj_name;
+    private ArrayList<String> glasses_id, glasses_title, glasses_obj_name, temple_obj_name, lenses_obj_name, glasses_frame_type, glasses_type, pads_obj_name, description, stacks, glasses_price;
     private CameraFaceActivity faceActivityInstance;
     private PrefManager prefManager;
 
-    public GlassesItemCustomAdapter(Activity activity, Context context, ArrayList<String> glasses_id, ArrayList<Integer> glasses_image, ArrayList<String> glasses_title, ArrayList<String> glasses_obj_name, ArrayList<String> temple_obj_name, ArrayList<String> lenses_obj_name, ArrayList<String> glasses_frame_type, ArrayList<String> glasses_type, ArrayList<String> pads_obj_name) {
+    public GlassesItemCustomAdapter(Activity activity, Context context, ArrayList<String> glasses_id, ArrayList<Integer> glasses_image, ArrayList<String> glasses_title, ArrayList<String> glasses_obj_name, ArrayList<String> temple_obj_name, ArrayList<String> lenses_obj_name, ArrayList<String> glasses_frame_type, ArrayList<String> glasses_type, ArrayList<String> pads_obj_name, ArrayList<String> description, ArrayList<String> stacks, ArrayList<String> glasses_price) {
         this.activity = activity;
         this.context = context;
         this.glasses_id = glasses_id;
@@ -34,6 +36,9 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
         this.glasses_frame_type = glasses_frame_type;
         this.glasses_type = glasses_type;
         this.pads_obj_name = pads_obj_name;
+        this.description = description;
+        this.glasses_price = glasses_price;
+        this.stacks = stacks;
         prefManager = new PrefManager(context);
         if (activity instanceof CameraFaceActivity) {
             faceActivityInstance = (CameraFaceActivity) activity;
@@ -72,18 +77,22 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
 
         if(prefManager.isFavorite(glasses_id.get(position))) {
             holder.glassesFavoriteImageView.setVisibility(View.VISIBLE);
+        } else {
+            holder.glassesFavoriteImageView.setVisibility(View.GONE);
         }
 
         holder.glassesCardView.setOnLongClickListener(v -> {
-            if(prefManager != null) {
-                if(prefManager.isFavorite(glasses_id.get(position))) {
-                    holder.glassesFavoriteImageView.setVisibility(View.GONE);
-                    prefManager.removeFromFavorites(glasses_id.get(position));
-                } else {
-                    holder.glassesFavoriteImageView.setVisibility(View.VISIBLE);
-                    prefManager.addToFavorites(glasses_id.get(position));
-                }
-            }
+            Intent intent = new Intent(context, GlassesActivity.class);
+            intent.putExtra("ID", glasses_id.get(position));
+            intent.putExtra("Image", glasses_image.get(position));
+            intent.putExtra("Title", glasses_title.get(position));
+            intent.putExtra("FrameType", glasses_frame_type.get(position));
+            intent.putExtra("Type", glasses_type.get(position));
+            intent.putExtra("Price", glasses_price.get(position));
+            intent.putExtra("Size", faceActivityInstance.scaleFactor);
+            intent.putExtra("Description", description.get(position));
+            intent.putExtra("Color", faceActivityInstance.selectedColor);
+            activity.startActivityForResult(intent, CameraFaceActivity.REFRESH_ITEMS);
             return true;
         });
     }

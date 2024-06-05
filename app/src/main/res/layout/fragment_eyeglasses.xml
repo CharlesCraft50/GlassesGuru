@@ -1,0 +1,226 @@
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:orientation="vertical"
+    android:paddingTop="0dp"
+    android:id="@+id/main"
+    tools:context=".EyeglassesFragment">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/contraintLayoutTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/rounded_box"
+                android:backgroundTint="@color/white"
+                android:padding="20dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <TextView
+                    android:id="@+id/glassesTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/glasses_title_text"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/glassesFrameType"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/default_frame_type"
+                    app:layout_constraintStart_toStartOf="@+id/glassesTitle"
+                    app:layout_constraintTop_toBottomOf="@+id/glassesTitle" />
+
+                <TextView
+                    android:id="@+id/glassesPrice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="$0.00"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    app:layout_constraintStart_toStartOf="@+id/glassesFrameType"
+                    app:layout_constraintTop_toBottomOf="@+id/glassesFrameType" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/constraintLayoutColor"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/rounded_box"
+                android:backgroundTint="@color/white"
+                android:padding="20dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/contraintLayoutTitle">
+
+                <TextView
+                    android:id="@+id/glassesColorLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/default_color"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/glassesColorCard"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:layout_margin="10dp"
+                    android:background="@drawable/rounded_box"
+                    app:layout_constraintStart_toEndOf="@+id/glassesColorLabel"
+                    app:layout_constraintTop_toTopOf="parent">
+                </androidx.cardview.widget.CardView>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/constraintLayoutFunction"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/rounded_box"
+                android:backgroundTint="@color/white"
+                android:padding="20dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/constraintLayoutColor">
+
+                <TextView
+                    android:id="@+id/glassesFunctionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/default_function"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <HorizontalScrollView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/glassesFunctionLabel">
+
+                    <RadioGroup
+                        android:id="@+id/rgFunctionOptions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rbClear"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="8dp"
+                            android:text="Clear" />
+
+                        <RadioButton
+                            android:id="@+id/rbBlueBlock"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="8dp"
+                            android:text="Blue Block" />
+
+                        <RadioButton
+                            android:id="@+id/rbSunglasses"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="8dp"
+                            android:text="Sunglasses" />
+
+                        <RadioButton
+                            android:id="@+id/rbPhotochromic"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="8dp"
+                            android:text="Photochromic" />
+
+                        <RadioButton
+                            android:id="@+id/rbBlueBlockPro"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="8dp"
+                            android:text="Blue Block Pro" />
+                    </RadioGroup>
+                </HorizontalScrollView>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/constraintLayoutSize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/rounded_box"
+                android:backgroundTint="@color/white"
+                android:padding="20dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/constraintLayoutFunction">
+
+                <TextView
+                    android:id="@+id/glassesSizeLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/size_label"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/glassesSize"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="10dp"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    app:layout_constraintStart_toEndOf="@+id/glassesSizeLabel"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/constraintLayoutDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/rounded_box"
+                android:backgroundTint="@color/white"
+                android:padding="20dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/constraintLayoutSize">
+
+                <TextView
+                    android:id="@+id/glassesDescriptionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/description_label"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/glassesDescription"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:padding="10dp"
+                    android:singleLine="false"
+                    android:text="This is a default description for this glasses type and it is long for its purpose is to be elipssis. This is a default description for this glasses type and it is long for its purpose is to be elipssis. This is a default description for this glasses type and it is long for its purpose is to be elipssis. This is a default description for this glasses type and it is long for its purpose is to be elipssis"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="@+id/glassesDescriptionLabel"
+                    app:layout_constraintTop_toBottomOf="@+id/glassesDescriptionLabel" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
+</ScrollView>

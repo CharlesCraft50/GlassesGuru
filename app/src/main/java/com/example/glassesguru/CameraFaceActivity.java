@@ -115,6 +115,7 @@ import com.google.mlkit.vision.face.FaceLandmark;
 public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
 
     private static final String TAG = AugmentedFaceRenderer.class.getSimpleName();
+    public static final int REFRESH_ITEMS = 4;
     private boolean capture_image = false;
     private boolean capture_image_ai = false;
     private FaceShapeClassifier faceShapeClassifier;
@@ -155,7 +156,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private final float[] leftHingeMatrix = new float[16];
     private final float[] rightHingeMatrix = new float[16];
     private static final float[] DEFAULT_COLOR = new float[] {0f, 0f, 0f, 0f};
-    private float scaleFactor = 1.0f;
+    public float scaleFactor = 1.0f;
     private boolean shownGlassesOptions = false;
     private boolean glassesVisible = true;
     private boolean lensesVisible = true;
@@ -182,6 +183,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private ArrayList<String> originalGlassesFrameType = new ArrayList<>();
     private ArrayList<String> originalGlassesType = new ArrayList<>();
     private ArrayList<String> originalPadsObjName = new ArrayList<>();
+    private ArrayList<String> originalDescription = new ArrayList<>();
+    private ArrayList<String> originalStacks = new ArrayList<>();
+    private ArrayList<String> originalGlassesPrice = new ArrayList<>();
 
     // Filtered lists of glasses data
     private ArrayList<String> filteredGlassesId = new ArrayList<>();
@@ -193,11 +197,14 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private ArrayList<String> filteredGlassesFrameType = new ArrayList<>();
     private ArrayList<String> filteredGlassesType = new ArrayList<>();
     private ArrayList<String> filteredPadsObjName = new ArrayList<>();
+    private ArrayList<String> filteredDescription = new ArrayList<>();
+    private ArrayList<String> filteredStacks = new ArrayList<>();
+    private ArrayList<String> filteredGlassesPrice = new ArrayList<>();
     GlassesItemCustomAdapter glassesItemCustomAdapter;
     RecyclerView glassesRecyclerView;
     private float glasses_offset_y = 0.0299f;
     private boolean eyesObjectNeedsCreation;
-    private int selectedColor = -1;
+    public int selectedColor = -1;
     private int previousColor;
     private ImageButton colorPickerButton;
     RotateAnimation rotateAnimation;
@@ -355,7 +362,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             showColorPickerDialog();
         });
 
-        glassesItemCustomAdapter = new GlassesItemCustomAdapter(CameraFaceActivity.this, this, filteredGlassesId, filteredGlassesImage, filteredGlassesTitle, filteredGlassesObjName, filteredTempleObjName, filteredLensesObjName, filteredGlassesFrameType, filteredGlassesType, filteredPadsObjName);
+        glassesItemCustomAdapter = new GlassesItemCustomAdapter(CameraFaceActivity.this, this, filteredGlassesId, filteredGlassesImage, filteredGlassesTitle, filteredGlassesObjName, filteredTempleObjName, filteredLensesObjName, filteredGlassesFrameType, filteredGlassesType, filteredPadsObjName, filteredDescription, filteredStacks, filteredGlassesPrice);
 
         glassesRecyclerView = (RecyclerView) findViewById(R.id.glassesRecyclerVIew);
         glassesRecyclerView.setAdapter(glassesItemCustomAdapter);
@@ -528,6 +535,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             }
         } else if(requestCode == 1) {
             loadLastPhoto();
+        } else if(requestCode == REFRESH_ITEMS) {
+            glassesItemCustomAdapter.notifyDataSetChanged();
         }
     }
 
@@ -535,113 +544,146 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         // Populate the original glasses data lists
         originalGlassesId.add("1");
         originalGlassesImage.add(R.drawable.glasses_1);
-        originalGlassesTitle.add("Glasses 1");
+        originalGlassesTitle.add("Timeless Rectangular Eyeglasses");
         originalGlassesObjName.add("glasses_1_frame.obj");
         originalTempleObjName.add("glasses_1_temple, glasses_1_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Rectangular frame, Angular frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("");
+        originalDescription.add("These classic, rectangular eyeglasses frames feature a bold, black outline for a modern, streamlined look. The durable construction and full UV protection make them a versatile choice for any style. Available in multiple sizes to flatter a variety of face shapes. Add a touch of refined sophistication to your look with these affordable, high-quality frames.");
+        originalStacks.add("5");
+        originalGlassesPrice.add("2000.95");
 
         originalGlassesId.add("2");
         originalGlassesImage.add(R.drawable.glasses_2);
-        originalGlassesTitle.add("Glasses 2");
+        originalGlassesTitle.add("Sophisticated Rectangular Frames");
         originalGlassesObjName.add("glasses_2_frame.obj");
         originalTempleObjName.add("glasses_2_temple, glasses_2_temple_tip");
         originalLensesObjName.add("glasses_2_lenses.obj:albedo_4");
         originalGlassesFrameType.add("Wayfarer frame");
         originalGlassesType.add("Sunglasses");
         originalPadsObjName.add("");
+        originalDescription.add("These classic rectangular eyeglasses frames feature a bold, modern silhouette with a sleek, black outline. Crafted from durable materials, they provide full UV protection to keep your eyes comfortable. The versatile design flatters a variety of face shapes, making these frames a stylish and practical choice for everyday wear. Available in multiple sizes to ensure a customized fit.");
+        originalStacks.add("5");
+        originalGlassesPrice.add("20");
 
         originalGlassesId.add("3");
         originalGlassesImage.add(R.drawable.glasses_3);
-        originalGlassesTitle.add("Glasses 3");
+        originalGlassesTitle.add("Vintage-Inspired Round Frames");
         originalGlassesObjName.add("glasses_3_frame.obj");
         originalTempleObjName.add("glasses_3_temple, glasses_3_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("");
+        originalDescription.add("Transport your look to a bygone era with these classic round eyeglasses frames. Featuring a bold, black outline, they evoke a vintage aesthetic while providing modern functionality. The durable construction and full UV protection make these frames a practical choice for everyday wear. The versatile round shape flatters a variety of face types. Available in multiple sizes to ensure a comfortable, customized fit.");
+        originalStacks.add("5");
+        originalGlassesPrice.add("20");
 
         originalGlassesId.add("4");
         originalGlassesImage.add(R.drawable.glasses_4);
-        originalGlassesTitle.add("Glasses 4");
+        originalGlassesTitle.add("Sophisticated Round Eyeglasses");
         originalGlassesObjName.add("glasses_4_frame.obj");
         originalTempleObjName.add("glasses_4_temple, glasses_4_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame, Oval frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("");
+        originalDescription.add("These classic round eyeglasses frames exude a refined, vintage-inspired look. The bold, black outline and sleek silhouette give them a modern edge. Crafted from durable materials, they provide full UV protection to keep your eyes comfortable. The versatile round shape flatters a variety of face types. Available in multiple sizes to ensure a customized, comfortable fit. Elevate your style with these sophisticated, timeless frames.");
+        originalStacks.add("5");
+        originalGlassesPrice.add("20");
 
         originalGlassesId.add("5");
         originalGlassesImage.add(R.drawable.glasses_5);
-        originalGlassesTitle.add("Glasses 5");
+        originalGlassesTitle.add("Refined Rectangular Frames");
         originalGlassesObjName.add("glasses_5_frame.obj");
         originalTempleObjName.add("glasses_5_temple, glasses_5_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Rectangular frame, Angular frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("");
+        originalDescription.add("These classic rectangular eyeglasses offer a timeless, sophisticated look. The bold, black outline creates a sleek, modern silhouette. Crafted from durable materials, they provide full UV protection for all-day comfort. The rectangular shape flatters a variety of face types. Available in multiple sizes to ensure a customized, comfortable fit. Elevate your style with these refined, versatile frames.");
+        originalStacks.add("5");
+        originalGlassesPrice.add("20");
 
         originalGlassesId.add("6");
         originalGlassesImage.add(R.drawable.glasses_6);
-        originalGlassesTitle.add("Glasses 6");
+        originalGlassesTitle.add("Sophisticated Round Eyeglasses");
         originalGlassesObjName.add("glasses_6_frame.obj:albedo_2");
         originalTempleObjName.add("glasses_6_temple, glasses_6_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame, Oval frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("");
+        originalDescription.add("These classic round eyeglasses frames exude a refined, vintage-inspired look. The transparent, light-colored acetate material and sleek silhouette give them a modern, sophisticated edge. Crafted from durable materials, they provide full UV protection to keep your eyes comfortable. The versatile round shape flatters a variety of face types. Available in a range of sizes to ensure a customized, comfortable fit. Elevate your style with these timeless, versatile frames.");
+        originalStacks.add("5");
+        originalGlassesPrice.add("20");
 
         originalGlassesId.add("7");
         originalGlassesImage.add(R.drawable.glasses_7);
-        originalGlassesTitle.add("Glasses 7");
+        originalGlassesTitle.add("Classic Rectangular Frames");
         originalGlassesObjName.add("glasses_7_frame.obj");
         originalTempleObjName.add("glasses_7_temple, glasses_7_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Wayfarer frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("");
+        originalDescription.add("These sleek, rectangular eyeglasses frames exude a refined, sophisticated look. The bold, black acetate material provides a modern, statement-making silhouette. Crafted with durable construction, they offer full UV protection to keep your eyes comfortable. The versatile rectangular shape flatters a variety of face types. Available in an assortment of sizes to ensure a customized, comfortable fit. Elevate your style with these timeless, high-quality frames.");
+        originalStacks.add("5");
+        originalGlassesPrice.add("20");
 
         originalGlassesId.add("8");
         originalGlassesImage.add(R.drawable.glasses_8);
-        originalGlassesTitle.add("Glasses 8");
+        originalGlassesTitle.add("Sophisticated Metal Frames");
         originalGlassesObjName.add("glasses_8_frame.obj");
         originalTempleObjName.add("glasses_8_temple, glasses_8_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Rectangular frame, Angular frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("glasses_8_pads.obj");
+        originalDescription.add("These sleek, metal eyeglasses frames exude a refined, modern style. The clean, minimal silhouette features a bold, black finish that creates a striking, statement-making look. Crafted from durable, high-quality materials, they provide full UV protection for all-day comfort and clarity. The versatile, semi-rimless design flatters a variety of face shapes. Available in multiple sizes to ensure a customized, secure fit. Elevate your eyewear wardrobe with these sophisticated, versatile frames.");
+        originalStacks.add("5");
+        originalGlassesPrice.add("20");
 
         originalGlassesId.add("9");
         originalGlassesImage.add(R.drawable.glasses_9);
-        originalGlassesTitle.add("Glasses 9");
+        originalGlassesTitle.add("Durable Performance Frames");
         originalGlassesObjName.add("glasses_9_frame.obj");
         originalTempleObjName.add("glasses_9_temple, glasses_9_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Rectangular frame, Angular frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("glasses_9_pads.obj");
+        originalDescription.add("These athletic eyeglasses from Under Armour feature a sleek, modern silhouette designed for an active lifestyle. The sturdy metal construction provides a lightweight, comfortable fit while offering full UV protection. The semi-rimless design with vibrant red accents delivers a bold, performance-focused aesthetic. Adjustable nose pads and temples ensure a secure, customized wear for all-day comfort during sports or everyday activities. Elevate your eyewear with these versatile, high-quality frames built to keep up with your active pursuits.");
+        originalStacks.add("5");
+        originalGlassesPrice.add("20");
 
         originalGlassesId.add("10");
         originalGlassesImage.add(R.drawable.glasses_10);
-        originalGlassesTitle.add("Glasses 10");
+        originalGlassesTitle.add("Chic Round Optical Frames");
         originalGlassesObjName.add("glasses_10_frame.obj");
         originalTempleObjName.add("glasses_10_temple, glasses_10_temple_tip");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("glasses_10_pads.obj");
+        originalDescription.add("These stylish round eyeglasses feature a classic silhouette with a modern twist. The sleek, rose gold metal construction creates a sophisticated, eye-catching look. The full-rim design provides a secure, comfortable fit while the transparent lenses offer clear, unobstructed vision. The versatile round shape flatters a variety of face types. With adjustable nose pads, these frames can be customized for all-day wearability. Elevate your everyday style with these timeless, high-quality optical frames.");
+        originalStacks.add("0");
+        originalGlassesPrice.add("20");
 
         originalGlassesId.add("11");
         originalGlassesImage.add(R.drawable.glasses_11);
-        originalGlassesTitle.add("Glasses 11");
+        originalGlassesTitle.add("Sophisticated Square Optical Frames");
         originalGlassesObjName.add("glasses_11_frame.obj");
         originalTempleObjName.add("glasses_11_temple:albedo_3, glasses_11_temple_tip, glasses_11_temple_hinge:albedo_3");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame, Oval frame, Oversize frame");
         originalGlassesType.add("Eyeglasses");
         originalPadsObjName.add("glasses_11_pads.obj, glasses_11_pads_arms.obj:albedo_3");
+        originalDescription.add("These sleek, square eyeglasses exude a bold, contemporary style. The sturdy black acetate construction creates a striking silhouette, while the thin metal accents add a refined, premium touch. The full-rim design provides a secure, comfortable fit, and the transparent lenses offer clear, unobstructed vision. The versatile square shape flatters a variety of face types. With adjustable nose pads, these frames can be customized for all-day wearability. Elevate your everyday look with these high-quality, sophisticated optical frames.");
+        originalStacks.add("5");
+        originalGlassesPrice.add("20");
 
         // Initially show all glasses
         filteredGlassesId.addAll(originalGlassesId);
@@ -653,6 +695,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         filteredGlassesFrameType.addAll(originalGlassesFrameType);
         filteredGlassesType.addAll(originalGlassesType);
         filteredPadsObjName.addAll(originalPadsObjName);
+        filteredDescription.addAll(originalDescription);
+        filteredStacks.addAll(originalStacks);
+        filteredGlassesPrice.addAll(originalGlassesPrice);
     }
 
     private void filterGlasses() {
@@ -668,6 +713,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         filteredGlassesFrameType.clear();
         filteredGlassesType.clear();
         filteredPadsObjName.clear();
+        filteredDescription.clear();
+        filteredStacks.clear();
+        filteredGlassesPrice.clear();
 
         if (selectedFrameTypes.contains("All")) {
             // If "All" is selected, show all glasses
@@ -680,6 +728,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             filteredGlassesFrameType.addAll(originalGlassesFrameType);
             filteredGlassesType.addAll(originalGlassesType);
             filteredPadsObjName.addAll(originalPadsObjName);
+            filteredDescription.addAll(originalDescription);
+            filteredStacks.addAll(originalStacks);
+            filteredGlassesPrice.addAll(originalGlassesPrice);
         } else {
             for (int i = 0; i < originalGlassesId.size(); i++) {
                 boolean isFavorite = prefManager != null && prefManager.isFavorite(originalGlassesId.get(i));
@@ -745,6 +796,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         filteredGlassesFrameType.add(originalGlassesFrameType.get(index));
         filteredGlassesType.add(originalGlassesType.get(index));
         filteredPadsObjName.add(originalPadsObjName.get(index));
+        filteredDescription.add(originalDescription.get(index));
+        filteredStacks.add(originalStacks.get(index));
+        filteredGlassesPrice.add(originalGlassesPrice.get(index));
     }
 
     @Override
@@ -864,12 +918,14 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
     private void installArCore() {
         // Check if the app has permission to install unknown apps
-        if (!getPackageManager().canRequestPackageInstalls()) {
-            // Request permission to install unknown apps
-            requestInstallUnknownAppsPermission();
-        } else {
-            // Download and install the APK
-            downloadAndInstallArCore();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!getPackageManager().canRequestPackageInstalls()) {
+                // Request permission to install unknown apps
+                requestInstallUnknownAppsPermission();
+            } else {
+                // Download and install the APK
+                downloadAndInstallArCore();
+            }
         }
     }
 
@@ -1714,27 +1770,6 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         eyesObjectNeedsCreation = true;
     }
 
-    private void openColorPickerDialog() {
-        AmbilWarnaDialog colorPickerDialog = new AmbilWarnaDialog(this, previousColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
-            @Override
-            public void onOk(AmbilWarnaDialog dialog, int color) {
-                selectedColor = color;
-                float[] customColor = new float[]{Color.red(color) / 255f, Color.green(color) / 255f, Color.blue(color) / 255f, Color.alpha(color) / 255f};
-                // Set the custom color directly without further processing
-                eyesObject.setCustomColor(customColor);
-                rightTempleObject.setCustomColor(customColor);
-                leftTempleObject.setCustomColor(customColor);
-            }
-
-            @Override
-            public void onCancel(AmbilWarnaDialog dialog) {
-
-            }
-        });
-
-        colorPickerDialog.show();
-    }
-
     private void showCheckboxColorPickerDialog() {
         View checkboxDialogView = LayoutInflater.from(this).inflate(R.layout.dialog_color_picker, null);
         MaterialCheckBox frameCheckbox = checkboxDialogView.findViewById(R.id.frame_checkbox);
@@ -2256,7 +2291,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private void showTutorial() {
         TapTargetSequence sequence = new TapTargetSequence(this)
                 .targets(
-                        TapTarget.forView(findViewById(R.id.glassesCardView), "Select Through Glasses", "Tap to try on different glasses. Long press to add to your favorites.")
+                        TapTarget.forView(findViewById(R.id.glassesCardView), "Select Through Glasses", "Tap to try on different glasses. Long press to see the product.")
                                 .cancelable(false)
                                 .drawShadow(true)
                                 .outerCircleColor(R.color.gray_blue_semi_transparent)

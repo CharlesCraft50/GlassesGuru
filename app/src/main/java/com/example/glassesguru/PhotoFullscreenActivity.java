@@ -57,7 +57,7 @@ public class PhotoFullscreenActivity extends AppCompatActivity {
         if (photoPath != null) {
             File photoFile = new File(photoPath);
             Uri photoUri = FileProvider.getUriForFile(this,
-                    getApplicationContext().getPackageName() + ".fileprovider", photoFile);
+                    "com.example.glassesguru.provider", photoFile);
 
             Intent shareIntent = new Intent(Intent.ACTION_SEND);
             shareIntent.setType("image/*");

@@ -36,7 +36,7 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
-                android:id="@+id/glassesBrand"
+                android:id="@+id/glassesFrameType"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/glasses_brand_text"
@@ -51,8 +51,8 @@
                 android:maxLines="4"
                 android:singleLine="false"
                 android:text="This is a default description for this glasses type and it is long for its purpose is to be elipssis. This is a default description for this glasses type and it is long for its purpose is to be elipssis. This is a default description for this glasses type and it is long for its purpose is to be elipssis. This is a default description for this glasses type and it is long for its purpose is to be elipssis"
-                app:layout_constraintStart_toStartOf="@+id/glassesBrand"
-                app:layout_constraintTop_toBottomOf="@+id/glassesBrand" />
+                app:layout_constraintStart_toStartOf="@+id/glassesFrameType"
+                app:layout_constraintTop_toBottomOf="@+id/glassesFrameType" />
 
             <TextView
                 android:layout_width="wrap_content"
