@@ -28,7 +28,7 @@
                 app:layout_constraintTop_toTopOf="parent">
 
                 <TextView
-                    android:id="@+id/glassesTitle"
+                    android:id="@+id/nonPrescriptionLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/glasses_title_text"
@@ -37,12 +37,12 @@
                     app:layout_constraintTop_toTopOf="parent" />
 
                 <TextView
-                    android:id="@+id/glassesFrameType"
+                    android:id="@+id/nonPrecriptionDescription"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/default_frame_type"
-                    app:layout_constraintStart_toStartOf="@+id/glassesTitle"
-                    app:layout_constraintTop_toBottomOf="@+id/glassesTitle" />
+                    app:layout_constraintStart_toStartOf="@+id/nonPrescriptionLabel"
+                    app:layout_constraintTop_toBottomOf="@+id/nonPrescriptionLabel" />
 
                 <TextView
                     android:id="@+id/glassesPrice"
@@ -51,8 +51,8 @@
                     android:layout_marginTop="10dp"
                     android:text="$0.00"
                     android:textAppearance="?android:attr/textAppearanceLarge"
-                    app:layout_constraintStart_toStartOf="@+id/glassesFrameType"
-                    app:layout_constraintTop_toBottomOf="@+id/glassesFrameType" />
+                    app:layout_constraintStart_toStartOf="@+id/nonPrecriptionDescription"
+                    app:layout_constraintTop_toBottomOf="@+id/nonPrecriptionDescription" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 

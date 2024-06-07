@@ -1,0 +1,113 @@
+package com.example.glassesguru;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.TextView;
+
+import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+
+public class LensesOptionActivity extends AppCompatActivity {
+
+    private TextView priceTextView;
+    private Button nextButton;
+    private boolean isInLensesFragment = true;
+
+    public enum FragmentType {
+        LENSES,
+        PRESCRIPTION
+    }
+
+    private FragmentType currentFragment = FragmentType.LENSES;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_lenses_option);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+
+        WindowInsetsControllerCompat windowInsetsController =
+                WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        // Configure the behavior of the hidden system bars.
+        windowInsetsController.setSystemBarsBehavior(
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        );
+
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
+
+        // Initially load the LensesFragment
+        loadFragment(FragmentType.LENSES);
+
+        priceTextView = findViewById(R.id.priceTextView);
+
+        Intent intent = getIntent();
+        String price = intent.getStringExtra("Price");
+
+        String pesoSymbol = "₱";
+        String formattedPrice = pesoSymbol + price;
+        priceTextView.setText(formattedPrice);
+
+        ImageButton backButton = findViewById(R.id.back_button);
+        backButton.setOnClickListener(v -> {
+            onBackPressed();
+        });
+
+        nextButton = findViewById(R.id.nextButton);
+        nextButton.setOnClickListener(v -> {
+            if (currentFragment == FragmentType.LENSES) {
+                loadFragment(FragmentType.PRESCRIPTION);
+            }
+        });
+    }
+
+    private void loadFragment(FragmentType fragmentType) {
+        Fragment fragment = null;
+        switch (fragmentType) {
+            case LENSES:
+                fragment = new LensesFragment();
+                currentFragment = FragmentType.LENSES;
+                break;
+            case PRESCRIPTION:
+                fragment = new PrescriptionFragment();
+                currentFragment = FragmentType.PRESCRIPTION;
+                break;
+        }
+
+        if (fragment != null) {
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            FragmentTransaction transaction = fragmentManager.beginTransaction();
+            transaction.setReorderingAllowed(true);
+            transaction.replace(R.id.fragment_container, fragment, null);
+            transaction.addToBackStack(null);
+            transaction.commit();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        if (fragmentManager.getBackStackEntryCount() > 1) {
+            fragmentManager.popBackStack();
+        } else if (currentFragment == FragmentType.LENSES) {
+            finish();
+        } else {
+            loadFragment(FragmentType.LENSES);
+        }
+    }
+}

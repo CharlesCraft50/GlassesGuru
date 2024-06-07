@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RadioGroup;
@@ -25,6 +26,7 @@ public class GlassesActivity extends AppCompatActivity {
     private TextView priceTextView;
     private ImageView glassesImageView, favoriteImageView;
     private PrefManager prefManager;
+    Button selectLensesButton;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,6 +110,21 @@ public class GlassesActivity extends AppCompatActivity {
             public void onClick(View v) {
                 finish();
             }
+        });
+
+        selectLensesButton = findViewById(R.id.selectLensesButton);
+        selectLensesButton.setOnClickListener(v -> {
+            Intent intentLenses = new Intent(GlassesActivity.this, LensesOptionActivity.class);
+            intentLenses.putExtra("Price", price);
+            intentLenses.putExtra("Title", title);
+            intentLenses.putExtra("FrameType", frameType);
+            intentLenses.putExtra("Type", type);
+            intentLenses.putExtra("Price", price);
+            intentLenses.putExtra("Size", size);
+            intentLenses.putExtra("Description", description);
+            intentLenses.putExtra("Color", color);
+            intentLenses.putExtra("ID", ID);
+            startActivity(intentLenses);
         });
     }
 }

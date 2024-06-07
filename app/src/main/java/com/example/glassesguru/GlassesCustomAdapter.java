@@ -74,8 +74,8 @@ public class GlassesCustomAdapter extends RecyclerView.Adapter<GlassesCustomAdap
             super(itemView);
             glasses_card = itemView.findViewById(R.id.glasses_card);
             glasses_image_text = itemView.findViewById(R.id.glassesImage);
-            glasses_title_text = itemView.findViewById(R.id.glassesTitle);
-            glasses_brand_text = itemView.findViewById(R.id.glassesFrameType);
+            glasses_title_text = itemView.findViewById(R.id.nonPrescriptionLabel);
+            glasses_brand_text = itemView.findViewById(R.id.nonPrecriptionDescription);
             glasses_description_text = itemView.findViewById(R.id.glassesDescription);
         }
     }

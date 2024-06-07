@@ -25,6 +25,11 @@
         android:theme="@style/Theme.GlassesGuru"
         tools:targetApi="31">
         <activity
+            android:name=".LensesOptionActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:windowFullscreen="true" />
+        <activity
             android:name=".GlassesActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
