@@ -83,8 +83,32 @@
                     android:layout_margin="10dp"
                     android:background="@drawable/rounded_box"
                     app:layout_constraintStart_toEndOf="@+id/glassesColorLabel"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    android:id="@+id/lensesColorLayout"
+                    app:layout_constraintStart_toEndOf="@+id/glassesColorCard"
                     app:layout_constraintTop_toTopOf="parent">
-                </androidx.cardview.widget.CardView>
+
+                    <TextView
+                        android:id="@+id/lensesColorLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="30dp"
+                        android:text="Lenses"
+                        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/lensesColorCard"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_margin="10dp"
+                        android:background="@drawable/rounded_box" />
+                </LinearLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.constraintlayout.widget.ConstraintLayout

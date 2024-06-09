@@ -2,9 +2,11 @@ package com.example.glassesguru;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
@@ -14,7 +16,8 @@ import androidx.fragment.app.Fragment;
 
 public class EyeglassesFragment extends Fragment {
     private TextView glassesTitle, glassesFrameType, glassesPrice, glassesSize, glassesDescription;
-    private View glassesColorCard;
+    private View glassesColorCard, lensesColorCard;
+    private LinearLayout lensesColorLayout;
     private PrefManager prefManager;
     private RadioGroup rgFunctionOptions;
     private static final String ARG_TITLE = "Title";
@@ -24,6 +27,7 @@ public class EyeglassesFragment extends Fragment {
     private static final String ARG_SIZE = "Size";
     private static final String ARG_DESCRIPTION = "Description";
     private static final String ARG_COLOR = "Color";
+    private static final String ARG_LENSES_COLOR = "LensesColor";
     private static final String ARG_ID = "ID";
 
     // TODO: Rename and change types of parameters
@@ -34,6 +38,7 @@ public class EyeglassesFragment extends Fragment {
     private float Size;
     private String Description;
     private int SelectedColor;
+    private int LensesColor;
     private String ID;
 
     public EyeglassesFragment() {
@@ -51,6 +56,7 @@ public class EyeglassesFragment extends Fragment {
             Size = getArguments().getFloat(ARG_SIZE);
             Description = getArguments().getString(ARG_DESCRIPTION);
             SelectedColor = getArguments().getInt(ARG_COLOR);
+            LensesColor = getArguments().getInt(ARG_LENSES_COLOR);
             ID = getArguments().getString(ARG_ID);
         }
     }
@@ -65,8 +71,10 @@ public class EyeglassesFragment extends Fragment {
         glassesSize = view.findViewById(R.id.glassesSize);
         glassesDescription = view.findViewById(R.id.glassesDescription);
         glassesColorCard = view.findViewById(R.id.glassesColorCard);
+        lensesColorCard = view.findViewById(R.id.lensesColorCard);
+        lensesColorLayout = view.findViewById(R.id.lensesColorLayout);
         prefManager = new PrefManager(requireContext());
-        setData(Title, FrameType, Type, Price, Size, Description, SelectedColor, ID);
+        setData(Title, FrameType, Type, Price, Size, Description, SelectedColor, LensesColor, ID);
         return view;
     }
 
@@ -75,7 +83,7 @@ public class EyeglassesFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
     }
 
-    public void setData(String title, String frameType, String type, String price, float size, String description, int color, String ID) {
+    public void setData(String title, String frameType, String type, String price, float size, String description, int color, int lensesColor, String ID) {
         glassesTitle.setText(title);
         glassesFrameType.setText(frameType);
 
@@ -98,7 +106,7 @@ public class EyeglassesFragment extends Fragment {
 
         float[] customColor = new float[]{0f, 0f, 0f, 1f};
 
-        if (color != -1) {
+        if (color != 0x00000000) {
             customColor = new float[]{Color.red(color) / 255f, Color.green(color) / 255f, Color.blue(color) / 255f, Color.alpha(color) / 255f};
         }
 
@@ -109,6 +117,14 @@ public class EyeglassesFragment extends Fragment {
                 (int) (customColor[2] * 255));
 
         glassesColorCard.setBackgroundColor(Color.parseColor(hexColor));
+
+        // Check if the LensesColor exists
+        if (lensesColor != 0x00000000) {
+            lensesColorLayout.setVisibility(View.VISIBLE);
+            lensesColorCard.setBackgroundColor(lensesColor);
+        } else {
+            lensesColorLayout.setVisibility(View.GONE);
+        }
 
 
         if ("Eyeglasses".equalsIgnoreCase(type)) {

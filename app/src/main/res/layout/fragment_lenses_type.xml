@@ -1,5 +1,5 @@
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -7,8 +7,7 @@
     android:background="@color/black"
     android:orientation="vertical"
     android:paddingTop="0dp"
-    android:id="@+id/main"
-    tools:context=".EyeglassesFragment">
+    tools:context=".LensesTypeFragment">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -26,6 +25,26 @@
             android:orientation="horizontal">
 
             <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/circle_indicator_outline_3" />
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="50dp"
+                android:backgroundTint="@color/gray_blue"
+                android:layout_height="3dp" />
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/circle_indicator_outline_3" />
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="50dp"
+                android:backgroundTint="@color/gray_blue"
+                android:layout_height="3dp" />
+
+            <ImageView
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:src="@drawable/circle_indicator_outline_2" />
@@ -40,30 +59,10 @@
                 android:layout_height="40dp"
                 android:src="@drawable/circle_indicator_outline_1" />
 
-            <androidx.cardview.widget.CardView
-                android:layout_width="50dp"
-                android:backgroundTint="@color/gray_blue"
-                android:layout_height="3dp" />
-
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/circle_indicator_outline_1" />
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="50dp"
-                android:backgroundTint="@color/gray_blue"
-                android:layout_height="3dp" />
-
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/circle_indicator_outline_1" />
-
         </LinearLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/constraintSingleVision"
+            android:id="@+id/constraintBlueBlockLenses"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/rounded_box_white"
@@ -73,85 +72,41 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <ImageView
-                android:id="@+id/singleVisionImage"
+                android:id="@+id/blueBlockLensesImage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/single_vision"
+                android:src="@drawable/blue_block_lenses"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                tools:layout_editor_absoluteY="21dp" />
 
             <TextView
-                android:id="@+id/singleVisionLabel"
+                android:id="@+id/blueBlockLensesLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/black"
                 android:layout_marginStart="10dp"
-                android:text="@string/single_vision_label"
+                android:text="@string/blue_block_lenses_label"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                app:layout_constraintStart_toEndOf="@+id/singleVisionImage"
+                app:layout_constraintStart_toEndOf="@+id/blueBlockLensesImage"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
-                android:id="@+id/singleVisionDescription"
+                android:id="@+id/blueBlockLensesDescription"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:layout_marginTop="10dp"
                 android:maxLines="2"
                 android:singleLine="false"
-                android:text="@string/single_vision_description"
+                android:text="@string/blue_block_lenses_description"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/singleVisionImage"
-                app:layout_constraintStart_toStartOf="@+id/singleVisionLabel"
-                app:layout_constraintTop_toBottomOf="@+id/singleVisionLabel" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/constraintBifocal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/rounded_box_white"
-            android:padding="20dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/contraintLayoutTitle">
-
-            <ImageView
-                android:id="@+id/bifocalImage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/bifocal"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/bifocalLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:text="@string/bifocal_label"
-                android:textColor="@color/black"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                app:layout_constraintStart_toEndOf="@+id/bifocalImage"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/bifocalDescription"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_marginTop="10dp"
-                android:maxLines="2"
-                android:singleLine="false"
-                android:text="@string/bifocal_description"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/bifocalImage"
-                app:layout_constraintStart_toStartOf="@+id/bifocalLabel"
-                app:layout_constraintTop_toBottomOf="@+id/bifocalLabel" />
+                app:layout_constraintStart_toEndOf="@+id/blueBlockLensesImage"
+                app:layout_constraintStart_toStartOf="@+id/blueBlockLensesLabel"
+                app:layout_constraintTop_toBottomOf="@+id/blueBlockLensesLabel" />
 
             <LinearLayout
-                android:id="@+id/bifocalOptionsLayout"
+                android:id="@+id/blueBlockLensesOptionsLayout"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:background="@color/black_semi_transparent"
@@ -172,9 +127,11 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_margin="30dp"
-                        android:text="Bifocal"
-                        android:textSize="18sp"
+                        android:layout_marginTop="30dp"
+                        android:layout_marginStart="20dp"
+                        android:layout_marginEnd="20dp"
+                        android:text="Blue Block"
+                        android:textSize="16sp"
                         android:textAppearance="?android:attr/textAppearanceLarge" />
 
                 </androidx.cardview.widget.CardView>
@@ -203,16 +160,16 @@
                         android:layout_marginStart="10dp"
                         android:layout_marginTop="30dp"
                         android:layout_marginEnd="10dp"
-                        android:text="Progressive"
+                        android:text="Blue Block Pro"
                         android:textAppearance="?android:attr/textAppearanceLarge"
-                        android:textSize="18sp" />
+                        android:textSize="16sp" />
 
                 </androidx.cardview.widget.CardView>
             </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/constraintReading"
+            android:id="@+id/constraintClearLens"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
@@ -222,37 +179,83 @@
             app:layout_constraintTop_toBottomOf="@+id/contraintLayoutTitle">
 
             <ImageView
-                android:id="@+id/readingImage"
+                android:id="@+id/cleanLensImage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/reading"
+                android:src="@drawable/clear_lens"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
-                android:id="@+id/readingLabel"
+                android:id="@+id/clearLensLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
+                android:text="@string/clear_lens_label"
                 android:textColor="@color/black"
-                android:text="@string/reading_label"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                app:layout_constraintStart_toEndOf="@+id/readingImage"
+                app:layout_constraintStart_toEndOf="@+id/cleanLensImage"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
-                android:id="@+id/readingDescription"
+                android:id="@+id/clearLensDescription"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:layout_marginTop="10dp"
                 android:maxLines="2"
                 android:singleLine="false"
-                android:text="@string/reading_description"
+                android:text="@string/clear_lenses_description"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/readingImage"
-                app:layout_constraintStart_toStartOf="@+id/readingLabel"
-                app:layout_constraintTop_toBottomOf="@+id/readingLabel" />
+                app:layout_constraintStart_toEndOf="@+id/cleanLensImage"
+                app:layout_constraintStart_toStartOf="@+id/clearLensLabel"
+                app:layout_constraintTop_toBottomOf="@+id/clearLensLabel" />
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/constraintTransitions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/rounded_box_white"
+            android:padding="20dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/contraintLayoutTitle">
+
+            <ImageView
+                android:id="@+id/transitionsImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/transitions_and_photochromic"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/transitionsLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:textColor="@color/black"
+                android:text="@string/transitions_label"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                app:layout_constraintStart_toEndOf="@+id/transitionsImage"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/transitionsDescription"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginTop="10dp"
+                android:maxLines="2"
+                android:singleLine="false"
+                android:text="@string/transitions_description"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/transitionsImage"
+                app:layout_constraintStart_toStartOf="@+id/transitionsLabel"
+                app:layout_constraintTop_toBottomOf="@+id/transitionsLabel" />
 
             <LinearLayout
                 android:id="@+id/readingOptionsLayout"
@@ -277,7 +280,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Prescription"
-                        android:textSize="18sp"
+                        android:textSize="22sp"
                         android:layout_marginTop="30dp"
                         android:layout_marginStart="10dp"
                         android:layout_marginEnd="10dp"
@@ -308,9 +311,9 @@
                         android:layout_height="wrap_content"
                         android:text="Reading"
                         android:layout_marginTop="30dp"
-                        android:layout_marginEnd="20dp"
-                        android:layout_marginStart="20dp"
-                        android:textSize="18sp"
+                        android:layout_marginEnd="30dp"
+                        android:layout_marginStart="30dp"
+                        android:textSize="20sp"
                         android:textAppearance="?android:attr/textAppearanceLarge" />
 
                 </androidx.cardview.widget.CardView>
@@ -363,4 +366,5 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
+
 </ScrollView>

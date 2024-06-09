@@ -62,7 +62,8 @@ public class ObjectRenderer {
   private int materialParametersUniform;
   private int colorCorrectionParameterUniform;
   private int colorUniform;
-  private int customColorUniform; // New uniform for custom color
+  private int customColorUniform; //
+  private int customTransparencyUniform;
 
   private int depthTextureUniform;
   private int depthUvTransformUniform;
@@ -296,6 +297,10 @@ public class ObjectRenderer {
     this.isCustomColorSet = true; // Set the flag to true when a custom color is set
   }
 
+  public float[] getCustomColor() {
+    return this.customColor;
+  }
+
   public void clearCustomColor() {
     this.customColor = DEFAULT_COLOR;
     this.isCustomColorSet = false;
@@ -321,6 +326,11 @@ public class ObjectRenderer {
   public void adjustTempleTransform(float yScaleFactor, float yOffsetFactor) {
     Matrix.scaleM(modelMatrix, 0, modelMatrix, 0, 1.0f, yScaleFactor, yScaleFactor);
     Matrix.translateM(modelMatrix, 0, 0.0f, yOffsetFactor, 0.0f);
+  }
+
+  public void setTransparency(float transparency) {
+    customTransparencyUniform = GLES20.glGetUniformLocation(program, "u_Transparency");
+    GLES20.glUniform1f(customTransparencyUniform, transparency);
   }
 }
 

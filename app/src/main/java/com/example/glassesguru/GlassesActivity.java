@@ -57,6 +57,7 @@ public class GlassesActivity extends AppCompatActivity {
         int imageResId = intent.getIntExtra("Image", -1);
         glassesImageView.setImageResource(imageResId);
 
+        String ID = intent.getStringExtra("ID");
         String title = intent.getStringExtra("Title");
         String frameType = intent.getStringExtra("FrameType");
         String type = intent.getStringExtra("Type");
@@ -64,7 +65,9 @@ public class GlassesActivity extends AppCompatActivity {
         float size = intent.getFloatExtra("Size", 1.0f);
         String description = intent.getStringExtra("Description");
         int color = intent.getIntExtra("Color", Color.BLACK);
-        String ID = intent.getStringExtra("ID");
+        int lensesColor = intent.getIntExtra("LensesColor", Color.BLACK);
+
+
 
         String pesoSymbol = "₱";
         String formattedPrice = pesoSymbol + price;
@@ -85,7 +88,9 @@ public class GlassesActivity extends AppCompatActivity {
         eyeglassesBundle.putFloat("Size", size);
         eyeglassesBundle.putString("Description", description);
         eyeglassesBundle.putInt("Color", color);
+        eyeglassesBundle.putInt("LensesColor", lensesColor);
         eyeglassesBundle.putString("ID", ID);
+
         eyeglassesFragment.setArguments(eyeglassesBundle);
 
         if(prefManager.isFavorite(ID)) {
@@ -123,6 +128,7 @@ public class GlassesActivity extends AppCompatActivity {
             intentLenses.putExtra("Size", size);
             intentLenses.putExtra("Description", description);
             intentLenses.putExtra("Color", color);
+            intentLenses.putExtra("LensesColor", lensesColor);
             intentLenses.putExtra("ID", ID);
             startActivity(intentLenses);
         });

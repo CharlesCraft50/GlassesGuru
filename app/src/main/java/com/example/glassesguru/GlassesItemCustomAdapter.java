@@ -20,11 +20,11 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
     private Activity activity;
     private Context context;
     private ArrayList<Integer> glasses_image;
-    private ArrayList<String> glasses_id, glasses_title, glasses_obj_name, temple_obj_name, lenses_obj_name, glasses_frame_type, glasses_type, pads_obj_name, description, stacks, glasses_price;
+    private ArrayList<String> glasses_id, glasses_title, glasses_obj_name, temple_obj_name, lenses_obj_name, glasses_frame_type, glasses_type, pads_obj_name, description, stacks, glasses_price, transparency;
     private CameraFaceActivity faceActivityInstance;
     private PrefManager prefManager;
 
-    public GlassesItemCustomAdapter(Activity activity, Context context, ArrayList<String> glasses_id, ArrayList<Integer> glasses_image, ArrayList<String> glasses_title, ArrayList<String> glasses_obj_name, ArrayList<String> temple_obj_name, ArrayList<String> lenses_obj_name, ArrayList<String> glasses_frame_type, ArrayList<String> glasses_type, ArrayList<String> pads_obj_name, ArrayList<String> description, ArrayList<String> stacks, ArrayList<String> glasses_price) {
+    public GlassesItemCustomAdapter(Activity activity, Context context, ArrayList<String> glasses_id, ArrayList<Integer> glasses_image, ArrayList<String> glasses_title, ArrayList<String> glasses_obj_name, ArrayList<String> temple_obj_name, ArrayList<String> lenses_obj_name, ArrayList<String> glasses_frame_type, ArrayList<String> glasses_type, ArrayList<String> pads_obj_name, ArrayList<String> description, ArrayList<String> stacks, ArrayList<String> glasses_price, ArrayList<String> transparency) {
         this.activity = activity;
         this.context = context;
         this.glasses_id = glasses_id;
@@ -39,6 +39,7 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
         this.description = description;
         this.glasses_price = glasses_price;
         this.stacks = stacks;
+        this.transparency = transparency;
         prefManager = new PrefManager(context);
         if (activity instanceof CameraFaceActivity) {
             faceActivityInstance = (CameraFaceActivity) activity;
@@ -70,7 +71,8 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
                 String newLenses = lenses_obj_name.get(position);
                 String newGlassesType = glasses_frame_type.get(position);
                 String newPads = pads_obj_name.get(position);
-                faceActivityInstance.updateGlassesModel(newModel, newTemple, newLenses, newGlassesType, newPads);
+                String newTransparency = transparency.get(position);
+                faceActivityInstance.updateGlassesModel(newModel, newTemple, newLenses, newGlassesType, newPads, newTransparency);
                 faceActivityInstance.capture_button.startLoadingAnimation();
             }
         });
@@ -91,7 +93,8 @@ public class GlassesItemCustomAdapter extends RecyclerView.Adapter<GlassesItemCu
             intent.putExtra("Price", glasses_price.get(position));
             intent.putExtra("Size", faceActivityInstance.scaleFactor);
             intent.putExtra("Description", description.get(position));
-            intent.putExtra("Color", faceActivityInstance.selectedColor);
+            intent.putExtra("Color", faceActivityInstance.eyesObjectCustomColor);
+            intent.putExtra("LensesColor", faceActivityInstance.lensesObjectCustomColor);
             activity.startActivityForResult(intent, CameraFaceActivity.REFRESH_ITEMS);
             return true;
         });

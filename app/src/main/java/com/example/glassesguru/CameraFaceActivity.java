@@ -156,6 +156,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private final float[] leftHingeMatrix = new float[16];
     private final float[] rightHingeMatrix = new float[16];
     private static final float[] DEFAULT_COLOR = new float[] {0f, 0f, 0f, 0f};
+    private static final int DEFAULT_COLOR_INT = 0x00000000;
     public float scaleFactor = 1.0f;
     private boolean shownGlassesOptions = false;
     private boolean glassesVisible = true;
@@ -186,6 +187,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private ArrayList<String> originalDescription = new ArrayList<>();
     private ArrayList<String> originalStacks = new ArrayList<>();
     private ArrayList<String> originalGlassesPrice = new ArrayList<>();
+    private ArrayList<String> originalTransparency = new ArrayList<>();
 
     // Filtered lists of glasses data
     private ArrayList<String> filteredGlassesId = new ArrayList<>();
@@ -200,12 +202,13 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private ArrayList<String> filteredDescription = new ArrayList<>();
     private ArrayList<String> filteredStacks = new ArrayList<>();
     private ArrayList<String> filteredGlassesPrice = new ArrayList<>();
+    private ArrayList<String> filteredTransparency = new ArrayList<>();
     GlassesItemCustomAdapter glassesItemCustomAdapter;
     RecyclerView glassesRecyclerView;
     private float glasses_offset_y = 0.0299f;
     private boolean eyesObjectNeedsCreation;
-    public int selectedColor = -1;
-    private int previousColor;
+    public int selectedColor = DEFAULT_COLOR_INT;
+    private int previousColor = DEFAULT_COLOR_INT;
     private ImageButton colorPickerButton;
     RotateAnimation rotateAnimation;
 
@@ -233,6 +236,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private String lensesModel = "";
     private String glassesType = "";
     private String padsModel = "";
+    private String transparencyObj = "";
     private float maxScaleFactor = 0.5f;
     private float maxTranslation = 0.05f;
     private ConstraintLayout recommendation_pop_up;
@@ -250,6 +254,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     String[] templeParts = new String[]{""};
     String[] padParts = new String[]{""};
     private boolean isPadArmsExists = false;
+    public int lensesObjectCustomColor = DEFAULT_COLOR_INT;
+    public int eyesObjectCustomColor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -362,7 +368,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             showColorPickerDialog();
         });
 
-        glassesItemCustomAdapter = new GlassesItemCustomAdapter(CameraFaceActivity.this, this, filteredGlassesId, filteredGlassesImage, filteredGlassesTitle, filteredGlassesObjName, filteredTempleObjName, filteredLensesObjName, filteredGlassesFrameType, filteredGlassesType, filteredPadsObjName, filteredDescription, filteredStacks, filteredGlassesPrice);
+        glassesItemCustomAdapter = new GlassesItemCustomAdapter(CameraFaceActivity.this, this, filteredGlassesId, filteredGlassesImage, filteredGlassesTitle, filteredGlassesObjName, filteredTempleObjName, filteredLensesObjName, filteredGlassesFrameType, filteredGlassesType, filteredPadsObjName, filteredDescription, filteredStacks, filteredGlassesPrice, filteredTransparency);
 
         glassesRecyclerView = (RecyclerView) findViewById(R.id.glassesRecyclerVIew);
         glassesRecyclerView.setAdapter(glassesItemCustomAdapter);
@@ -554,6 +560,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("These classic, rectangular eyeglasses frames feature a bold, black outline for a modern, streamlined look. The durable construction and full UV protection make them a versatile choice for any style. Available in multiple sizes to flatter a variety of face shapes. Add a touch of refined sophistication to your look with these affordable, high-quality frames.");
         originalStacks.add("5");
         originalGlassesPrice.add("2000.95");
+        originalTransparency.add("");
 
         originalGlassesId.add("2");
         originalGlassesImage.add(R.drawable.glasses_2);
@@ -567,6 +574,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("These classic rectangular eyeglasses frames feature a bold, modern silhouette with a sleek, black outline. Crafted from durable materials, they provide full UV protection to keep your eyes comfortable. The versatile design flatters a variety of face shapes, making these frames a stylish and practical choice for everyday wear. Available in multiple sizes to ensure a customized fit.");
         originalStacks.add("5");
         originalGlassesPrice.add("20");
+        originalTransparency.add("lensesObject=0.6f");
 
         originalGlassesId.add("3");
         originalGlassesImage.add(R.drawable.glasses_3);
@@ -580,6 +588,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("Transport your look to a bygone era with these classic round eyeglasses frames. Featuring a bold, black outline, they evoke a vintage aesthetic while providing modern functionality. The durable construction and full UV protection make these frames a practical choice for everyday wear. The versatile round shape flatters a variety of face types. Available in multiple sizes to ensure a comfortable, customized fit.");
         originalStacks.add("5");
         originalGlassesPrice.add("20");
+        originalTransparency.add("");
 
         originalGlassesId.add("4");
         originalGlassesImage.add(R.drawable.glasses_4);
@@ -593,6 +602,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("These classic round eyeglasses frames exude a refined, vintage-inspired look. The bold, black outline and sleek silhouette give them a modern edge. Crafted from durable materials, they provide full UV protection to keep your eyes comfortable. The versatile round shape flatters a variety of face types. Available in multiple sizes to ensure a customized, comfortable fit. Elevate your style with these sophisticated, timeless frames.");
         originalStacks.add("5");
         originalGlassesPrice.add("20");
+        originalTransparency.add("");
 
         originalGlassesId.add("5");
         originalGlassesImage.add(R.drawable.glasses_5);
@@ -606,12 +616,13 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("These classic rectangular eyeglasses offer a timeless, sophisticated look. The bold, black outline creates a sleek, modern silhouette. Crafted from durable materials, they provide full UV protection for all-day comfort. The rectangular shape flatters a variety of face types. Available in multiple sizes to ensure a customized, comfortable fit. Elevate your style with these refined, versatile frames.");
         originalStacks.add("5");
         originalGlassesPrice.add("20");
+        originalTransparency.add("");
 
         originalGlassesId.add("6");
         originalGlassesImage.add(R.drawable.glasses_6);
         originalGlassesTitle.add("Sophisticated Round Eyeglasses");
         originalGlassesObjName.add("glasses_6_frame.obj:albedo_2");
-        originalTempleObjName.add("glasses_6_temple, glasses_6_temple_tip");
+        originalTempleObjName.add("glasses_6_temple:albedo_2, glasses_6_temple_tip:albedo_2");
         originalLensesObjName.add("");
         originalGlassesFrameType.add("Round frame, Oval frame");
         originalGlassesType.add("Eyeglasses");
@@ -619,6 +630,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("These classic round eyeglasses frames exude a refined, vintage-inspired look. The transparent, light-colored acetate material and sleek silhouette give them a modern, sophisticated edge. Crafted from durable materials, they provide full UV protection to keep your eyes comfortable. The versatile round shape flatters a variety of face types. Available in a range of sizes to ensure a customized, comfortable fit. Elevate your style with these timeless, versatile frames.");
         originalStacks.add("5");
         originalGlassesPrice.add("20");
+        originalTransparency.add("eyesObject=0.5f, rightTempleObject=0.5f, leftTempleObject=0.5f, rightTempleTipObject=0.5f, leftTempleTipObject=0.5f");
 
         originalGlassesId.add("7");
         originalGlassesImage.add(R.drawable.glasses_7);
@@ -632,6 +644,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("These sleek, rectangular eyeglasses frames exude a refined, sophisticated look. The bold, black acetate material provides a modern, statement-making silhouette. Crafted with durable construction, they offer full UV protection to keep your eyes comfortable. The versatile rectangular shape flatters a variety of face types. Available in an assortment of sizes to ensure a customized, comfortable fit. Elevate your style with these timeless, high-quality frames.");
         originalStacks.add("5");
         originalGlassesPrice.add("20");
+        originalTransparency.add("");
 
         originalGlassesId.add("8");
         originalGlassesImage.add(R.drawable.glasses_8);
@@ -645,6 +658,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("These sleek, metal eyeglasses frames exude a refined, modern style. The clean, minimal silhouette features a bold, black finish that creates a striking, statement-making look. Crafted from durable, high-quality materials, they provide full UV protection for all-day comfort and clarity. The versatile, semi-rimless design flatters a variety of face shapes. Available in multiple sizes to ensure a customized, secure fit. Elevate your eyewear wardrobe with these sophisticated, versatile frames.");
         originalStacks.add("5");
         originalGlassesPrice.add("20");
+        originalTransparency.add("");
 
         originalGlassesId.add("9");
         originalGlassesImage.add(R.drawable.glasses_9);
@@ -658,6 +672,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("These athletic eyeglasses from Under Armour feature a sleek, modern silhouette designed for an active lifestyle. The sturdy metal construction provides a lightweight, comfortable fit while offering full UV protection. The semi-rimless design with vibrant red accents delivers a bold, performance-focused aesthetic. Adjustable nose pads and temples ensure a secure, customized wear for all-day comfort during sports or everyday activities. Elevate your eyewear with these versatile, high-quality frames built to keep up with your active pursuits.");
         originalStacks.add("5");
         originalGlassesPrice.add("20");
+        originalTransparency.add("");
 
         originalGlassesId.add("10");
         originalGlassesImage.add(R.drawable.glasses_10);
@@ -671,6 +686,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("These stylish round eyeglasses feature a classic silhouette with a modern twist. The sleek, rose gold metal construction creates a sophisticated, eye-catching look. The full-rim design provides a secure, comfortable fit while the transparent lenses offer clear, unobstructed vision. The versatile round shape flatters a variety of face types. With adjustable nose pads, these frames can be customized for all-day wearability. Elevate your everyday style with these timeless, high-quality optical frames.");
         originalStacks.add("0");
         originalGlassesPrice.add("20");
+        originalTransparency.add("");
 
         originalGlassesId.add("11");
         originalGlassesImage.add(R.drawable.glasses_11);
@@ -684,6 +700,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalDescription.add("These sleek, square eyeglasses exude a bold, contemporary style. The sturdy black acetate construction creates a striking silhouette, while the thin metal accents add a refined, premium touch. The full-rim design provides a secure, comfortable fit, and the transparent lenses offer clear, unobstructed vision. The versatile square shape flatters a variety of face types. With adjustable nose pads, these frames can be customized for all-day wearability. Elevate your everyday look with these high-quality, sophisticated optical frames.");
         originalStacks.add("5");
         originalGlassesPrice.add("20");
+        originalTransparency.add("");
 
         // Initially show all glasses
         filteredGlassesId.addAll(originalGlassesId);
@@ -698,6 +715,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         filteredDescription.addAll(originalDescription);
         filteredStacks.addAll(originalStacks);
         filteredGlassesPrice.addAll(originalGlassesPrice);
+        filteredTransparency.addAll(originalTransparency);
     }
 
     private void filterGlasses() {
@@ -716,6 +734,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         filteredDescription.clear();
         filteredStacks.clear();
         filteredGlassesPrice.clear();
+        filteredTransparency.clear();
 
         if (selectedFrameTypes.contains("All")) {
             // If "All" is selected, show all glasses
@@ -731,6 +750,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             filteredDescription.addAll(originalDescription);
             filteredStacks.addAll(originalStacks);
             filteredGlassesPrice.addAll(originalGlassesPrice);
+            filteredTransparency.addAll(originalTransparency);
         } else {
             for (int i = 0; i < originalGlassesId.size(); i++) {
                 boolean isFavorite = prefManager != null && prefManager.isFavorite(originalGlassesId.get(i));
@@ -799,6 +819,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         filteredDescription.add(originalDescription.get(index));
         filteredStacks.add(originalStacks.get(index));
         filteredGlassesPrice.add(originalGlassesPrice.get(index));
+        filteredTransparency.add(originalTransparency.get(index));
     }
 
     @Override
@@ -1404,7 +1425,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                             }
                         }
 
-                        if(!lensesModel.isEmpty() ) {
+                        if(!lensesModel.isEmpty()) {
 
                             // Create the lenses object
                             String lensesModelPath = "models/glasses/" + lensesModel.trim();
@@ -1443,6 +1464,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                     eyesObject.updateModelMatrix(eyesMatrix, scaleFactor);
                     eyesObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
 
+                    updateTransparency("eyesObject", eyesObject);
+
                     if (!padsModel.isEmpty()) {
                         padsObject.updateModelMatrix(eyesMatrix, scaleFactor);
                         padsObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
@@ -1458,9 +1481,10 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                         if(!lensesModel.isEmpty()) {
                             lensesObject.updateModelMatrix(eyesMatrix, scaleFactor);
                             lensesObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+
+                            updateTransparency("lensesObject", eyesObject);
                         }
                     }
-
 
                     // For the Glasses Temples
 
@@ -1485,6 +1509,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                                     rightTempleObject.adjustTempleTransform(rightTempleScaleFactor, rightTempleOffsetFactor);
                                 }
                                 rightTempleObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                                updateTransparency("rightTempleObject", rightTempleObject);
                             }
 
                             // Right Temple Tip Draw
@@ -1495,6 +1520,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                                         rightTempleTipObject.adjustTempleTransform(rightTempleScaleFactor, rightTempleOffsetFactor);
                                     }
                                     rightTempleTipObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                                    updateTransparency("rightTempleTipObject", rightTempleTipObject);
                                 }
                             }
 
@@ -1516,6 +1542,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                                     leftTempleObject.adjustTempleTransform(leftTempleScaleFactor, leftTempleOffsetFactor);
                                 }
                                 leftTempleObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                                updateTransparency("leftTempleObject", leftTempleObject);
                             }
 
                             // Left Temple Tip Draw
@@ -1526,6 +1553,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                                         leftTempleTipObject.adjustTempleTransform(leftTempleScaleFactor, leftTempleOffsetFactor);
                                     }
                                     leftTempleTipObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                                    updateTransparency("leftTempleTipObject", leftTempleTipObject);
                                 }
                             }
                         }
@@ -1535,10 +1563,14 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                     if(templeParts.length > 2) {
                         leftHingeObject.updateModelMatrix(eyesMatrix, scaleFactor);
                         leftHingeObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                        updateTransparency("leftHingeObject", leftHingeObject);
 
                         rightHingeObject.updateModelMatrix(eyesMatrix, scaleFactor);
                         rightHingeObject.draw(viewMatrix, projectionMatrix, colorCorrectionRgba, DEFAULT_COLOR);
+                        updateTransparency("rightHingeObject", rightHingeObject);
                     }
+
+
                 }
             }
 
@@ -1758,7 +1790,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         templeVisible = !templeVisible;
     }
 
-    public void updateGlassesModel(String newModel, String newTemple, String newLenses, String newGlassesType, String newPads) {
+    public void updateGlassesModel(String newModel, String newTemple, String newLenses, String newGlassesType, String newPads, String newTransparency) {
         templeParts = new String[]{""};
         padParts = new String[]{""};
         glassesModel = newModel;
@@ -1766,6 +1798,14 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         lensesModel = newLenses;
         glassesType = newGlassesType;
         padsModel = newPads;
+        transparencyObj = newTransparency;
+
+        if(lensesModel.isEmpty()) {
+           lensesObjectCustomColor = DEFAULT_COLOR_INT;
+        } else {
+            lensesObjectCustomColor = fromFloatToIntColor(lensesObject.getCustomColor());
+        }
+
         // Set the flag to indicate that eyesObject needs to be created
         eyesObjectNeedsCreation = true;
     }
@@ -1834,34 +1874,43 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
 
     private void showColorPickerDialog() {
-        AmbilWarnaDialog colorPickerDialog = new AmbilWarnaDialog(this, previousColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
+        int initialColor = (previousColor == DEFAULT_COLOR_INT) ? selectedColor : previousColor;
+        AmbilWarnaDialog colorPickerDialog = new AmbilWarnaDialog(this, initialColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
             @Override
             public void onCancel(AmbilWarnaDialog dialog) {
                 // Clear custom color
                 clearCustomColor();
+                previousColor = DEFAULT_COLOR_INT;
+                eyesObjectCustomColor = DEFAULT_COLOR_INT;
+                lensesObjectCustomColor = DEFAULT_COLOR_INT;
             }
 
             @Override
             public void onOk(AmbilWarnaDialog dialog, int color) {
                 selectedColor = color;
+                // Update previousColor after setting the new selectedColor
+                previousColor = selectedColor;
+
                 float[] customColor = new float[]{Color.red(color) / 255f, Color.green(color) / 255f, Color.blue(color) / 255f, Color.alpha(color) / 255f};
                 // Set custom color for selected parts
                 if (isFrameColorSelected) {
                     eyesObject.setCustomColor(customColor);
+                    eyesObjectCustomColor = fromFloatToIntColor(eyesObject.getCustomColor());
                 }
 
                 if(isLensesColorSelected) {
                     lensesObject.setCustomColor(customColor);
+                    lensesObjectCustomColor = fromFloatToIntColor(lensesObject.getCustomColor());
                 }
 
                 if(isTempleTipColorSelected && templeParts.length > 1) {
-                        rightTempleTipObject.setCustomColor(customColor);
-                        leftTempleTipObject.setCustomColor(customColor);
+                    rightTempleTipObject.setCustomColor(customColor);
+                    leftTempleTipObject.setCustomColor(customColor);
                 }
 
                 if(isTempleHingeColorSelected && templeParts.length > 2) {
-                        rightHingeObject.setCustomColor(customColor);
-                        leftHingeObject.setCustomColor(customColor);
+                    rightHingeObject.setCustomColor(customColor);
+                    leftHingeObject.setCustomColor(customColor);
                 }
 
                 if(isPadArmsColorSelected && padParts.length > 1) {
@@ -1881,7 +1930,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
     private void clearCustomColor() {
         previousColor = selectedColor;
-        selectedColor = -1;
+        selectedColor = DEFAULT_COLOR_INT;
         eyesObject.clearCustomColor();
         if(isLensesColorSelected) {
             lensesObject.clearCustomColor();
@@ -2480,9 +2529,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                             if(face_type_Spinner.getSelectedItemPosition() != 0) {
                                 if (!filteredGlassesObjName.isEmpty()) {
                                     if (filteredGlassesObjName.size() > 1) {
-                                        updateGlassesModel(filteredGlassesObjName.get(1), filteredTempleObjName.get(1), filteredLensesObjName.get(1), filteredGlassesType.get(1), filteredPadsObjName.get(1));
+                                        updateGlassesModel(filteredGlassesObjName.get(1), filteredTempleObjName.get(1), filteredLensesObjName.get(1), filteredGlassesType.get(1), filteredPadsObjName.get(1), filteredTransparency.get(1));
                                     } else {
-                                        updateGlassesModel(filteredGlassesObjName.get(0), filteredTempleObjName.get(0), filteredLensesObjName.get(0), filteredGlassesType.get(0), filteredPadsObjName.get(0));
+                                        updateGlassesModel(filteredGlassesObjName.get(0), filteredTempleObjName.get(0), filteredLensesObjName.get(0), filteredGlassesType.get(0), filteredPadsObjName.get(0), filteredTransparency.get(0));
                                     }
                                 } else {
                                     Toast.makeText(this, "No glasses available for the selected frame type.", Toast.LENGTH_SHORT).show();
@@ -2502,5 +2551,26 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
     private boolean isFavorite(String glassesId) {
         return prefManager.isFavorite(glassesId);
+    }
+
+    private void updateTransparency(String objectName, ObjectRenderer object) {
+        if(!transparencyObj.isEmpty()) {
+            String[] transparencyParts = transparencyObj.split(",");
+            for(String part : transparencyParts) {
+                if(part.contains(objectName)) {
+                    String[] keyValue = part.split("=");
+                    object.setTransparency(Float.parseFloat(keyValue[1].trim()));
+                }
+            }
+        }
+    }
+
+    private int fromFloatToIntColor(float[] color) {
+        return Color.argb(
+                (int)(color[3] * 255),
+                (int)(color[0] * 255),
+                (int)(color[1] * 255),
+                (int)(color[2] * 255)
+        );
     }
 }

@@ -34,6 +34,12 @@
     <string name="reading_description">One magnification field for reading</string>
     <string name="non_prescription_label">Non-prescription</string>
     <string name="non_prescription_description">Glasses without any prescription</string>
+    <string name="blue_block_lenses_label">Blue Block Lenses</string>
+    <string name="blue_block_lenses_description">Protect your eyes from the emissions of digital devices</string>
+    <string name="clear_lens_label">Clear Lens</string>
+    <string name="clear_lenses_description">Lenses for Everyday Use</string>
+    <string name="transitions_label"><![CDATA[Transitions & Photochromic]]></string>
+    <string name="transitions_description">Lenses that darken when outdoors remain clear when indoors.</string>
 
     <string-array name="sph_values">
         <!-- Add SPH values here -->

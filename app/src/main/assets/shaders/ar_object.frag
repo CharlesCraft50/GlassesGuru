@@ -18,6 +18,7 @@ varying vec2 v_TexCoord;
 varying vec3 v_ScreenSpacePosition;
 uniform vec4 u_ObjColor;
 uniform vec4 u_CustomColor;
+uniform float u_Transparency;
 
 #if USE_DEPTH_FOR_OCCLUSION
 
@@ -83,13 +84,26 @@ void main() {
     float specular = objectColor.a * materialSpecular *
                      pow(specularStrength, materialSpecularPower);
 
+    // Apply transparency to the lighting terms
+    if (u_Transparency > 0.0) {
+        diffuse *= u_Transparency;
+        specular *= u_Transparency;
+    }
+
     vec3 color = objectColor.rgb * (ambient + diffuse) + specular;
     // Apply SRGB gamma before writing the fragment color.
     color.rgb = pow(color, vec3(kGamma));
     // Apply average pixel intensity and color shift
     color *= colorShift * (averagePixelIntensity / kMiddleGrayGamma);
     gl_FragColor.rgb = color;
-    gl_FragColor.a = objectColor.a;
+
+    // Apply transparency to the final color only if u_Transparency is greater than 0
+    if (u_Transparency > 0.0) {
+        color.rgb *= u_Transparency;
+        gl_FragColor.a = objectColor.a * u_Transparency;
+    } else {
+        gl_FragColor.a = objectColor.a;
+    }
 
 #if USE_DEPTH_FOR_OCCLUSION
     const float kMetersToMillimeters = 1000.0;

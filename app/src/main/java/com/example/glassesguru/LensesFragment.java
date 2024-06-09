@@ -19,7 +19,7 @@ import android.widget.LinearLayout;
  */
 public class LensesFragment extends Fragment {
 
-    private ConstraintLayout contraintLayoutSingleVision, constraintBifocal, constraintReading, contraintLayoutNonPrescription;
+    private ConstraintLayout constraintSingleVision, constraintBifocal, constraintReading, constraintNonPrescription;
     private LinearLayout bifocalOptionsLayout, readingOptionsLayout;
     private static final String TAG = "LensesFragment";
 
@@ -53,9 +53,9 @@ public class LensesFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_lenses, container, false);
-        contraintLayoutSingleVision = view.findViewById(R.id.contraintLayoutSingleVision);
-        contraintLayoutSingleVision.setOnClickListener(v -> {
-            selectView(contraintLayoutSingleVision);
+        constraintSingleVision = view.findViewById(R.id.constraintSingleVision);
+        constraintSingleVision.setOnClickListener(v -> {
+            selectView(constraintSingleVision);
         });
         constraintBifocal = view.findViewById(R.id.constraintBifocal);
         constraintBifocal.setOnClickListener(v -> {
@@ -73,9 +73,9 @@ public class LensesFragment extends Fragment {
         readingOptionsLayout = view.findViewById(R.id.readingOptionsLayout);
         readingOptionsLayout.setVisibility(View.GONE); // Hide reading options layout by default
 
-        contraintLayoutNonPrescription = view.findViewById(R.id.contraintLayoutNonPrescription);
-        contraintLayoutNonPrescription.setOnClickListener(v -> {
-            selectView(contraintLayoutNonPrescription);
+        constraintNonPrescription = view.findViewById(R.id.constraintNonPrescription);
+        constraintNonPrescription.setOnClickListener(v -> {
+            selectView(constraintNonPrescription);
         });
 
         return view;
@@ -85,8 +85,8 @@ public class LensesFragment extends Fragment {
         view.setBackgroundResource(R.drawable.rounded_box_light_blue);
 
         // Set the background of the other views back to normal
-        if (view != contraintLayoutSingleVision) {
-            contraintLayoutSingleVision.setBackgroundResource(R.drawable.rounded_box_white);
+        if (view != constraintSingleVision) {
+            constraintSingleVision.setBackgroundResource(R.drawable.rounded_box_white);
         }
         if (view != constraintBifocal) {
             constraintBifocal.setBackgroundResource(R.drawable.rounded_box_white);
@@ -96,8 +96,8 @@ public class LensesFragment extends Fragment {
             constraintReading.setBackgroundResource(R.drawable.rounded_box_white);
             readingOptionsLayout.setVisibility(View.GONE);
         }
-        if (view != contraintLayoutNonPrescription) {
-            contraintLayoutNonPrescription.setBackgroundResource(R.drawable.rounded_box_white);
+        if (view != constraintNonPrescription) {
+            constraintNonPrescription.setBackgroundResource(R.drawable.rounded_box_white);
         }
     }
 
