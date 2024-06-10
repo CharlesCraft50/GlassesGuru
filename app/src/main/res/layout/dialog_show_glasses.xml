@@ -1,5 +1,6 @@
 <!-- dialog_checkbox_layout.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -11,11 +12,8 @@
         android:layout_height="wrap_content"
         android:text="Glasses" />
 
-    <com.google.android.material.checkbox.MaterialCheckBox
-        android:id="@+id/lenses_checkbox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Lenses" />
+
+
 
     <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/temple_checkbox"
@@ -23,17 +21,24 @@
         android:layout_height="wrap_content"
         android:text="Glasses Temples" />
 
-    <com.google.android.material.checkbox.MaterialCheckBox
-        android:id="@+id/temple_right_checkbox"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Right Temple" />
+        android:layout_marginStart="40px"
+        android:orientation="horizontal">
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/temple_right_checkbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Right Temple" />
 
-    <com.google.android.material.checkbox.MaterialCheckBox
-        android:id="@+id/temple_left_checkbox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Left Temple" />
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/temple_left_checkbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40px"
+            android:text="Left Temple" />
+    </LinearLayout>
 
     <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/temple_tip_right_checkbox"
@@ -53,7 +58,53 @@
         android:id="@+id/auto_hide_temple_checkbox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:visibility="gone"
         android:text="Auto Hide Temples" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/lenses_checkbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lenses" />
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/lenses_flare_checkbox"
+            android:layout_marginStart="40px"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lenses Flare" />
+    </LinearLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/lensesVisibilityLayout"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp">
+
+        <ImageView
+            android:id="@+id/lensesVisibilityIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@color/pale_black_semi_transparent"
+            android:src="@drawable/baseline_remove_red_eye_24"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <SeekBar
+            android:id="@+id/slider_lenses_visibility_bar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:max="90"
+            android:progress="0"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/lensesVisibilityIcon"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <Button
         android:id="@+id/ok_button"

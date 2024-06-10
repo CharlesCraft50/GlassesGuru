@@ -1,6 +1,7 @@
 precision mediump float;
 
 uniform sampler2D u_Texture;
+uniform sampler2D u_EnvTexture;
 
 uniform vec4 u_LightingParameters;
 uniform vec4 u_MaterialParameters;
@@ -19,6 +20,8 @@ varying vec3 v_ScreenSpacePosition;
 uniform vec4 u_ObjColor;
 uniform vec4 u_CustomColor;
 uniform float u_Transparency;
+uniform float u_ReflectionStrength;
+uniform float u_LensFlareStrength;
 
 #if USE_DEPTH_FOR_OCCLUSION
 
@@ -95,6 +98,44 @@ void main() {
     color.rgb = pow(color, vec3(kGamma));
     // Apply average pixel intensity and color shift
     color *= colorShift * (averagePixelIntensity / kMiddleGrayGamma);
+
+    // Calculate reflection
+    if (u_ReflectionStrength > 0.0) {
+        vec3 reflectionVector = reflect(-viewFragmentDirection, viewNormal);
+        vec2 reflectionTexCoord = reflectionVector.xy * 0.5 + 0.5; // Assuming the environment map is in the same space
+        vec4 reflectionColor = texture2D(u_EnvTexture, reflectionTexCoord);
+        reflectionColor.rgb = pow(reflectionColor.rgb, vec3(kInverseGamma)); // Apply inverse gamma correction
+        color = mix(color, reflectionColor.rgb, u_ReflectionStrength * u_Transparency); // Apply reflection with transparency
+    }
+
+    if (u_LensFlareStrength > 0.0) {
+        vec2 flareCenter = vec2(0.5, 0.5); // Center of the flare
+        vec2 flareDirection = normalize(v_TexCoord - flareCenter); // Direction from the center
+
+        float flareIntensity = max(0.0, dot(flareDirection, normalize(v_ViewPosition.xy)));
+        float flareRadius = 0.5; // Adjust the size of the flare
+
+        // Calculate radial gradient
+        float distanceToCenter = distance(v_TexCoord, flareCenter);
+        float flareGradient = smoothstep(flareRadius - 0.05, flareRadius, distanceToCenter);
+
+        // Create concentric circles
+        float circle1 = smoothstep(flareRadius - 0.05, flareRadius, distanceToCenter);
+        float circle2 = smoothstep(flareRadius - 0.15, flareRadius - 0.02, distanceToCenter);
+        float circle3 = smoothstep(flareRadius - 0.25, flareRadius - 0.06, distanceToCenter);
+        float circle4 = smoothstep(flareRadius - 0.35, flareRadius - 0.1, distanceToCenter);
+
+        // Combine concentric circles with gradient
+        float combinedFlare = flareGradient * (circle1 + circle2 + circle3 + circle4);
+
+        // Adjust the color and intensity of the flare
+        vec3 flareColor = vec3(1.0, 1.0, 0.5); // Adjust the color of the flare (e.g., pale yellow)
+        float flareIntensityAdjusted = combinedFlare * flareIntensity * u_LensFlareStrength * 0.1; // Adjust intensity (e.g., reduced to 10%)
+
+        // Apply the flare effect to the color
+        color.rgb += flareColor * flareIntensityAdjusted;
+    }
+
     gl_FragColor.rgb = color;
 
     // Apply transparency to the final color only if u_Transparency is greater than 0

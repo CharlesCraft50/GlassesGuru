@@ -64,6 +64,8 @@ public class ObjectRenderer {
   private int colorUniform;
   private int customColorUniform; //
   private int customTransparencyUniform;
+  private int u_ReflectionEnabledLocation;
+  private int u_ReflectionIntensityLocation;
 
   private int depthTextureUniform;
   private int depthUvTransformUniform;
@@ -331,6 +333,20 @@ public class ObjectRenderer {
   public void setTransparency(float transparency) {
     customTransparencyUniform = GLES20.glGetUniformLocation(program, "u_Transparency");
     GLES20.glUniform1f(customTransparencyUniform, transparency);
+  }
+
+  public void resetTransparency() {
+    setTransparency(1.0f);
+  }
+
+  public void addReflection(float intensity) {
+    u_ReflectionIntensityLocation = GLES20.glGetUniformLocation(program, "u_ReflectionStrength");
+    GLES20.glUniform1f(u_ReflectionIntensityLocation, intensity);
+  }
+
+  public void addLensFlare(float intensity) {
+    int lensFlareIntensityLocation = GLES20.glGetUniformLocation(program, "u_LensFlareStrength");
+    GLES20.glUniform1f(lensFlareIntensityLocation, intensity);
   }
 }
 
