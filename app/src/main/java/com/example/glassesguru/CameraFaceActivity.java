@@ -3,9 +3,8 @@ package com.example.glassesguru;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -15,7 +14,11 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.media.MediaScannerConnection;
@@ -27,14 +30,18 @@ import android.opengl.Matrix;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.text.Html;
+import android.transition.ChangeBounds;
+import android.transition.TransitionManager;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.RotateAnimation;
@@ -44,6 +51,7 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -60,7 +68,7 @@ import com.example.glassesguru.common.rendering.ObjectRenderer;
 import com.getkeepsafe.taptargetview.TapTarget;
 import com.getkeepsafe.taptargetview.TapTargetSequence;
 import com.google.android.material.checkbox.MaterialCheckBox;
-import com.google.ar.core.ArCoreApk;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.ar.core.AugmentedFace;
 import com.google.ar.core.Camera;
 import com.google.ar.core.CameraConfig;
@@ -74,14 +82,13 @@ import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
-import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 import com.google.ar.core.AugmentedFace.RegionType;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.IntBuffer;
@@ -89,6 +96,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumSet;
@@ -104,6 +112,11 @@ import yuku.ambilwarna.AmbilWarnaDialog;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceContour;
@@ -112,9 +125,15 @@ import com.google.mlkit.vision.face.FaceDetector;
 import com.google.mlkit.vision.face.FaceDetectorOptions;
 import com.google.mlkit.vision.face.FaceLandmark;
 
-public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceView.Renderer, GlassesItemCustomAdapter.OnItemClickListener {
 
     private static final String TAG = AugmentedFaceRenderer.class.getSimpleName();
+    private int primaryColorBackgroundTransparent = R.color.gray_blue_semi_transparent;
+    private int primaryOnColor = R.color.white;
     public static final int REFRESH_ITEMS = 4;
     private boolean capture_image = false;
     private boolean capture_image_ai = false;
@@ -159,6 +178,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private static final int DEFAULT_COLOR_INT = 0x00000000;
     public float scaleFactor = 1.0f;
     private boolean shownGlassesOptions = false;
+    private boolean shownMoreSettings = true;
     private boolean glassesVisible = true;
     private boolean lensesVisible = true;
     private boolean lensesFlareVisible = true;
@@ -168,9 +188,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private boolean rightTempleTipVisible = true;
     private boolean leftTempleTipVisible = true;
     private boolean autoHideTemple = true;
-    TextView debug_x;
-    TextView debug_y;
-    TextView debug_z;
+    TextView debug_x, debug_y, debug_z;
+    TextView dashedFaceText;
     private float temple_right_rotate_offset_x = 0.0f;
     private float temple_right_rotate_offset_y = 0.0f;
     private float temple_right_rotate_offset_z = 0.0f;
@@ -189,6 +208,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private ArrayList<String> originalStacks = new ArrayList<>();
     private ArrayList<String> originalGlassesPrice = new ArrayList<>();
     private ArrayList<String> originalTransparency = new ArrayList<>();
+    private ArrayList<Boolean> originalIsDownloaded = new ArrayList<>();
 
     // Filtered lists of glasses data
     private ArrayList<String> filteredGlassesId = new ArrayList<>();
@@ -204,6 +224,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     private ArrayList<String> filteredStacks = new ArrayList<>();
     private ArrayList<String> filteredGlassesPrice = new ArrayList<>();
     private ArrayList<String> filteredTransparency = new ArrayList<>();
+    private ArrayList<Boolean> filteredIsDownloaded = new ArrayList<>();
     GlassesItemCustomAdapter glassesItemCustomAdapter;
     RecyclerView glassesRecyclerView;
     private float glasses_offset_y = 0.0299f;
@@ -214,24 +235,26 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     RotateAnimation rotateAnimation;
 
     ImageView loading_icon_ImageView;
-    LinearLayout loading_screen;
+    LinearLayout loading_screen, dashedFaceAreaLayout;
     boolean showLoadingScreen = false;
-    ConstraintLayout slider_layout;
+    ConstraintLayout main, slider_layout;
+    LinearLayout more_settings_layout;
     public static CaptureButton capture_button;
     LinearLayout capture_LinearLayout;
-    ImageButton ai_recommendation_Button;
+    ImageView ai_recommendation_Button;
     private boolean capture_image_recommendation = false;
     FaceDetectorOptions face_detector_options;
     private FaceMaskView faceMaskView;
     private Spinner frameTypeSpinner;
     private MultiSelectSpinnerAdapter frameTypeAdapter;
-    private List<String> frameTypes = Arrays.asList("All", "Rectangular frame", "Angular frame", "Wayfarer frame", "Round frame", "Oval frame", "Oversize frame", "Sunglasses", "Favorites");
+    private List<String> frameTypes = Arrays.asList("All", "Rectangular frame", "Square frame", "Angular frame", "Wayfarer frame", "Round frame", "Oval frame", "Oversize frame", "Aviator frame", "Browline frame", "Sunglasses", "Favorites");
 
     private Spinner face_type_Spinner;
     private ArrayAdapter<CharSequence> face_type_adapter;
     private ImageButton lastPhotoImageView;
     ImageView capture_image_ImageView;
     private ImageButton replay_tutorial_Button;
+    private ImageButton more_settings_button;
     private float rotationAngle = 0.0f;
     private String templeModel = "glasses_1_temple, glasses_1_temple_tip";
     private String lensesModel = "glasses_1_lenses.obj:albedo_5";
@@ -258,19 +281,60 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
     String[] padParts = new String[]{""};
     private boolean isPadArmsExists = false;
     public int lensesObjectCustomColor = DEFAULT_COLOR_INT;
+    public int templeObjectCustomColor = DEFAULT_COLOR_INT;
+    public int templeTipObjectCustomColor = DEFAULT_COLOR_INT;
     public int eyesObjectCustomColor;
     private float lensesVisibilitySliderValue = 0f;
     private boolean adjustLensesTransparency = false;
+    private ImageButton chatSupportButton;
+    private int currentGlassesPosition = 0;
+    private TextView notification_count_TextView;
+    private int unseenCount = 0;
+    private ImageButton settingsAppButton;
+    private LinearLayout loadingIndicator;
+    private ImageView fullscreen_Button;
+    private RelativeLayout linearLayout;
+    private boolean fullscreenRecyclerView = false;
+    private RelativeLayout bottom_buttons_Layout;
+    private boolean shownBottomButtons = true;
+    private boolean shownColorPaletteSettings = false;
+    private boolean shownGlassesVisibilitySettings = false;
+    private ConstraintLayout color_picker_settings_layout, showGlasses_settings_layout;
+    private ImageButton showMoreGlassesDescriptionButton;
+    private boolean isDownloaded = false;
+    public String modelBasePath = "models/glasses/";
+    private ImageButton color_picker_settings_button, color_picker_reset_button, showGlassesButton, showGlasses_settings_Button;
+    private Bitmap croppedFaceBitmap = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        prefManager = new PrefManager(this);
+
+        String theme = prefManager.getThemeColor();
+
+        switch (theme) {
+            case "slate":
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                break;
+            case "dark":
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                primaryColorBackgroundTransparent = R.color.pale_black_semi_transparent;
+                break;
+        }
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_face);
 
+        main = findViewById(R.id.main);
+
+        loadingIndicator = findViewById(R.id.loadingIndicator);
+
+        loadingIndicator.setVisibility(View.VISIBLE);
 
         faceShapeClassifier = new FaceShapeClassifier(this);
 
         replay_tutorial_Button = findViewById(R.id.replay_tutorial_Button);
+        more_settings_button = findViewById(R.id.more_settings_button);
         recommendation_pop_up = findViewById(R.id.recommendation_pop_up);
         close_recommendation_Button = findViewById(R.id.close_recommendation_Button);
         close_recommendation_Button.setOnClickListener(new View.OnClickListener() {
@@ -313,6 +377,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 Animation.RELATIVE_TO_SELF, 0.5f
         );
 
+        dashedFaceAreaLayout = findViewById(R.id.dashedFaceAreaLayout);
+
         capture_image_ImageView = findViewById(R.id.captured_image);
 
         faceMaskView = findViewById(R.id.face_mask_view);
@@ -330,9 +396,12 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 .build();
         // [END set_detector_options]
 
+        bottom_buttons_Layout = findViewById(R.id.bottom_buttons_Layout);
+
         capture_LinearLayout = findViewById(R.id.capture_LinearLayout);
 
         slider_layout = (ConstraintLayout) findViewById(R.id.sliderLayout);
+        more_settings_layout = (LinearLayout) findViewById(R.id.more_settings_layout);
         ImageButton showMoreGlassesButton = (ImageButton) findViewById(R.id.showMoreGlassesButton);
         showMoreGlassesButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -342,6 +411,97 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 }
                 toggleGlassesOptions();
             }
+        });
+
+        more_settings_button.setOnClickListener(v -> {
+            toggleMoreSettings();
+        });
+
+        String senderRoom = "1" + prefManager.getUserUID();
+
+        notification_count_TextView = findViewById(R.id.notification_count_TextView);
+
+        DatabaseReference dbReferenceSender = FirebaseDatabase.getInstance(PrefManager.FIREBASE_DATABASE_URL).getReference("chats").child(senderRoom);
+
+        dbReferenceSender.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<MessageModel> messages = new ArrayList<>();
+                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+                    MessageModel message = dataSnapshot.getValue(MessageModel.class);
+                    messages.add(message);
+                }
+
+                // Sort messages by timestamp
+                Collections.sort(messages, new Comparator<MessageModel>() {
+                    @Override
+                    public int compare(MessageModel m1, MessageModel m2) {
+                        return Long.compare(m1.getTimestamp(), m2.getTimestamp());
+                    }
+                });
+
+                // Count unseen messages that are not from senderId
+                unseenCount = countUnseenMessages(messages, prefManager.getUserUID());
+                notification_count_TextView.setText(String.valueOf(unseenCount));
+                if(unseenCount != 0) {
+                    notification_count_TextView.setVisibility(View.VISIBLE);
+                } else {
+                    notification_count_TextView.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                // Handle error
+            }
+        });
+
+        chatSupportButton = findViewById(R.id.chatSupportButton);
+        chatSupportButton.setOnClickListener(v -> {
+            Intent intentLenses = new Intent(CameraFaceActivity.this, ChatActivity.class);
+            intentLenses.putExtra("Price", filteredGlassesPrice.get(currentGlassesPosition));
+            intentLenses.putExtra("Title", filteredGlassesTitle.get(currentGlassesPosition));
+            intentLenses.putExtra("Image", filteredGlassesImage.get(currentGlassesPosition));
+            intentLenses.putExtra("FrameType", filteredGlassesFrameType.get(currentGlassesPosition));
+            intentLenses.putExtra("Type", filteredGlassesType.get(currentGlassesPosition));
+            intentLenses.putExtra("Price", filteredGlassesPrice.get(currentGlassesPosition));
+            intentLenses.putExtra("Function", filteredGlassesType.get(currentGlassesPosition));
+            intentLenses.putExtra("Size", filteredStacks.get(currentGlassesPosition));
+            intentLenses.putExtra("Description", filteredDescription.get(currentGlassesPosition));
+            intentLenses.putExtra("Color", eyesObjectCustomColor);
+            intentLenses.putExtra("LensesColor", lensesObjectCustomColor);
+            intentLenses.putExtra("TempleColor", templeObjectCustomColor);
+            intentLenses.putExtra("TempleTipColor", templeTipObjectCustomColor);
+            intentLenses.putExtra("ID", filteredGlassesId.get(currentGlassesPosition));
+            intentLenses.putExtra("IsDownloaded", filteredIsDownloaded.get(currentGlassesPosition));
+            updateAllMessagesAsSeen(senderRoom, prefManager.getUserUID());
+
+            startActivity(intentLenses);
+        });
+
+        showMoreGlassesDescriptionButton = findViewById(R.id.showMoreGlassesDescriptionButton);
+        showMoreGlassesDescriptionButton.setOnClickListener(v -> {
+            Intent intent = new Intent(CameraFaceActivity.this, GlassesActivity.class);
+            intent.putExtra("ID", filteredGlassesId.get(currentGlassesPosition));
+            intent.putExtra("Image", filteredGlassesImage.get(currentGlassesPosition));
+            intent.putExtra("Title", filteredGlassesTitle.get(currentGlassesPosition));
+            intent.putExtra("FrameType", filteredGlassesFrameType.get(currentGlassesPosition));
+            intent.putExtra("Type", filteredGlassesType.get(currentGlassesPosition));
+            intent.putExtra("Price", filteredGlassesPrice.get(currentGlassesPosition));
+            intent.putExtra("Size", filteredStacks.get(currentGlassesPosition));
+            intent.putExtra("Description", filteredDescription.get(currentGlassesPosition));
+            intent.putExtra("Color", eyesObjectCustomColor);
+            intent.putExtra("LensesColor", lensesObjectCustomColor);
+            intent.putExtra("TempleColor", templeObjectCustomColor);
+            intent.putExtra("TempleTipColor", templeTipObjectCustomColor);
+            intent.putExtra("IsDownloaded", filteredIsDownloaded.get(currentGlassesPosition));
+            startActivityForResult(intent, CameraFaceActivity.REFRESH_ITEMS);
+        });
+
+        settingsAppButton = findViewById(R.id.settingsAppButton);
+        settingsAppButton.setOnClickListener(v -> {
+            Intent intent = new Intent(CameraFaceActivity.this, SettingsActivity.class);
+            startActivity(intent);
         });
 
         rotateAnimation.setDuration(1000); // Duration of the animation in milliseconds
@@ -371,11 +531,26 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
         colorPickerButton.setOnClickListener(v -> {
             showColorPickerDialog();
+            showColorPickerSettings();
         });
 
-        glassesItemCustomAdapter = new GlassesItemCustomAdapter(CameraFaceActivity.this, this, filteredGlassesId, filteredGlassesImage, filteredGlassesTitle, filteredGlassesObjName, filteredTempleObjName, filteredLensesObjName, filteredGlassesFrameType, filteredGlassesType, filteredPadsObjName, filteredDescription, filteredStacks, filteredGlassesPrice, filteredTransparency);
+        color_picker_settings_layout = findViewById(R.id.color_picker_settings_layout);
+
+        color_picker_settings_button = findViewById(R.id.color_picker_settings_button);
+        color_picker_settings_button.setOnClickListener(v -> {
+            showCheckboxColorPickerDialog();
+        });
+
+        color_picker_reset_button = findViewById(R.id.color_picker_reset_button);
+        color_picker_reset_button.setOnClickListener(v -> {
+            resetColor();
+        });
+
+
+        glassesItemCustomAdapter = new GlassesItemCustomAdapter(CameraFaceActivity.this, this, filteredGlassesId, filteredGlassesImage, filteredGlassesTitle, filteredGlassesObjName, filteredTempleObjName, filteredLensesObjName, filteredGlassesFrameType, filteredGlassesType, filteredPadsObjName, filteredDescription, filteredStacks, filteredGlassesPrice, filteredTransparency, filteredIsDownloaded);
 
         glassesRecyclerView = (RecyclerView) findViewById(R.id.glassesRecyclerVIew);
+        glassesItemCustomAdapter.setOnItemClickListener(this);
         glassesRecyclerView.setAdapter(glassesItemCustomAdapter);
         glassesRecyclerView.setLayoutManager(new GridLayoutManager(this, 3));
 
@@ -385,6 +560,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         debug_x = findViewById(R.id.debug_x);
         debug_y = findViewById(R.id.debug_y);
         debug_z = findViewById(R.id.debug_z);
+        dashedFaceText = findViewById(R.id.dashedFaceText);
 
         surfaceView.setPreserveEGLContextOnPause(true);
         surfaceView.setEGLContextClientVersion(2);
@@ -405,9 +581,19 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             }
         });
 
+        fullscreen_Button = findViewById(R.id.fullscreen_Button);
+        linearLayout = findViewById(R.id.linearLayout);
+
+        fullscreen_Button.setOnClickListener(view -> {
+            toggleRecyclerViewFullscreen();
+        });
+
         ai_recommendation_Button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                ai_recommendation_Button.setClickable(false);
+                dashedFaceAreaLayout.setVisibility(View.VISIBLE);
+                dashedFaceText.setText("CHIN UP");
                 capture_button.startLoadingAnimation();
                 capture_image_recommendation = true;
                 //capture_LinearLayout.setVisibility(View.VISIBLE);
@@ -476,8 +662,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         // Set the initial rotation angle to 0
         rotationAngle = 0.0f;
 
-        ImageView scaleIcon = (ImageView) findViewById(R.id.scaleIcon);
-        scaleIcon.setOnClickListener(new View.OnClickListener() {
+        ImageView scaleResetIcon = (ImageView) findViewById(R.id.scaleResetIcon);
+        scaleResetIcon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 scaleFactor = 1.0f;
@@ -485,8 +671,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             }
         });
 
-        ImageView yIcon = (ImageView) findViewById(R.id.yIcon);
-        yIcon.setOnClickListener(new View.OnClickListener() {
+        ImageView yResetIcon = (ImageView) findViewById(R.id.yResetIcon);
+        yResetIcon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 glasses_offset_y = 0.0200f;
@@ -494,8 +680,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             }
         });
 
-        ImageView rotationIcon = (ImageView) findViewById(R.id.rotationIcon);
-        rotationIcon.setOnClickListener(new View.OnClickListener() {
+        ImageView rotationResetIcon = (ImageView) findViewById(R.id.rotationResetIcon);
+        rotationResetIcon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 /*rotationOnProgress = false;
@@ -505,9 +691,10 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             }
         });
 
-        ImageButton showGlassesButton = (ImageButton) findViewById(R.id.showGlassesButton);
+        showGlassesButton = (ImageButton) findViewById(R.id.showGlassesButton);
         showGlassesButton.setOnClickListener(v -> {
                 toggleGlassesVisibility();
+                showGlassesVisibilitySettings();
         });
 
         showGlassesButton.setOnLongClickListener(v -> {
@@ -515,21 +702,165 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             return true;
         });
 
-        ImageButton showTempleButton = (ImageButton) findViewById(R.id.showTempleButton);
-        showTempleButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                toggleTempleVisibility();
-            }
+        showGlasses_settings_layout = findViewById(R.id.showGlasses_settings_layout);
+
+        showGlasses_settings_Button = findViewById(R.id.showGlasses_settings_Button);
+        showGlasses_settings_Button.setOnClickListener(v -> {
+            showCheckboxShowGlassesDialog();
         });
+
+        main.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                boolean isColorPickerVisible = color_picker_settings_layout.getVisibility() == View.VISIBLE;
+                boolean isGlassesSettingsVisible = showGlasses_settings_layout.getVisibility() == View.VISIBLE;
+
+                // Cache positions only if either settings layout is visible
+                int[] colorPickerLocation = new int[2];
+                int[] settingsLocation = new int[2];
+                int[] glassesSettingsLocation = new int[2];
+
+                if (isColorPickerVisible) {
+                    colorPickerButton.getLocationOnScreen(colorPickerLocation);
+                    color_picker_settings_layout.getLocationOnScreen(settingsLocation);
+                }
+
+                if (isGlassesSettingsVisible) {
+                    showGlasses_settings_Button.getLocationOnScreen(glassesSettingsLocation);
+                }
+
+                // Calculate bounds for the color picker button
+                int colorPickerLeft = colorPickerLocation[0];
+                int colorPickerTop = colorPickerLocation[1];
+                int colorPickerRight = colorPickerLeft + colorPickerButton.getWidth();
+                int colorPickerBottom = colorPickerTop + colorPickerButton.getHeight();
+
+                // Calculate bounds for the settings layout
+                int settingsLeft = settingsLocation[0];
+                int settingsTop = settingsLocation[1];
+                int settingsRight = settingsLeft + color_picker_settings_layout.getWidth();
+                int settingsBottom = settingsTop + color_picker_settings_layout.getHeight();
+
+                // Calculate bounds for the glasses settings layout
+                int glassesSettingsLeft = glassesSettingsLocation[0];
+                int glassesSettingsTop = glassesSettingsLocation[1];
+                int glassesSettingsRight = glassesSettingsLeft + showGlasses_settings_layout.getWidth();
+                int glassesSettingsBottom = glassesSettingsTop + showGlasses_settings_layout.getHeight();
+
+                // Check if touch is outside all views
+                float touchX = event.getRawX();
+                float touchY = event.getRawY();
+                boolean isOutsideButton = (touchX < colorPickerLeft || touchX > colorPickerRight || touchY < colorPickerTop || touchY > colorPickerBottom);
+                boolean isOutsideSettings = (touchX < settingsLeft || touchX > settingsRight || touchY < settingsTop || touchY > settingsBottom);
+                boolean isOutsideGlassesSettings = (touchX < glassesSettingsLeft || touchX > glassesSettingsRight || touchY < glassesSettingsTop || touchY > glassesSettingsBottom);
+
+                // Hide settings if touch is outside all
+                if (isOutsideButton && isOutsideSettings && isOutsideGlassesSettings) {
+                    hideColorPickerSettings();
+                    // Optionally, hide the show glasses settings if needed
+                    hideGlassesVisibilitySettings(); // Implement this method as needed
+                }
+            }
+            return false; // Return false to allow other views to process the touch event
+        });
+    }
+
+    private void showGlassesVisibilitySettings() {
+        showGlasses_settings_layout.setVisibility(View.VISIBLE);
+        showGlasses_settings_layout.setAlpha(0f);
+        showGlasses_settings_layout.animate()
+                .alpha(1f)
+                .withEndAction(() -> shownGlassesVisibilitySettings = true);
+    }
+
+    private void hideGlassesVisibilitySettings() {
+        showGlasses_settings_layout.animate()
+                .alpha(0f)
+                .setDuration(300)
+                .withEndAction(() -> {
+                   showGlasses_settings_layout.setVisibility(View.GONE);
+                   shownGlassesVisibilitySettings = false;
+                });
+    }
+    private void toggleColorPickerSettings() {
+        shownColorPaletteSettings = !shownColorPaletteSettings;
+        if(shownColorPaletteSettings) {
+            color_picker_settings_layout.setVisibility(View.VISIBLE);
+            color_picker_settings_layout.setAlpha(0f);
+            color_picker_settings_layout.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .withEndAction(() -> shownColorPaletteSettings = true);
+        } else {
+            color_picker_settings_layout.animate()
+                    .alpha(0f)
+                    .setDuration(300)
+                    .withEndAction(() -> {
+                        color_picker_settings_layout.setVisibility(View.GONE);
+                        shownColorPaletteSettings = false;
+                    });
+        }
+    }
+
+    public void showColorPickerSettings() {
+        color_picker_settings_layout.setVisibility(View.VISIBLE);
+        color_picker_settings_layout.setAlpha(0f);
+        color_picker_settings_layout.animate()
+                .alpha(1f)
+                .setDuration(300)
+                .withEndAction(() -> shownColorPaletteSettings = true);
+    }
+
+    public void hideColorPickerSettings() {
+        color_picker_settings_layout.animate()
+                .alpha(0f)
+                .setDuration(300)
+                .withEndAction(() -> {
+                    color_picker_settings_layout.setVisibility(View.GONE);
+                    shownColorPaletteSettings = false;
+                });
     }
 
     private void toggleGlassesOptions() {
         shownGlassesOptions = !shownGlassesOptions;
         if(shownGlassesOptions) {
             slider_layout.setVisibility(View.VISIBLE);
+            slider_layout.setAlpha(0f);
+            slider_layout.animate()
+                    .alpha(1f)
+                    .setDuration(300);
+            if(shownBottomButtons) {
+                bottom_buttons_Layout.setVisibility(View.GONE);
+                shownBottomButtons = false;
+            }
         } else {
-            slider_layout.setVisibility(View.INVISIBLE);
+            slider_layout.animate()
+                    .alpha(0f)
+                    .setDuration(300)
+                    .withEndAction(() -> slider_layout.setVisibility(View.INVISIBLE));
+            if(!shownBottomButtons) {
+                bottom_buttons_Layout.setVisibility(View.VISIBLE);
+                shownBottomButtons = true;
+            }
+        }
+    }
+
+    private void toggleMoreSettings() {
+        shownMoreSettings = !shownMoreSettings;
+        if(shownMoreSettings) {
+            more_settings_layout.setVisibility(View.VISIBLE);
+            more_settings_layout.setAlpha(0f);
+            more_settings_layout.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .withEndAction(() -> shownMoreSettings = true);
+        } else {
+            more_settings_layout.animate()
+                    .alpha(0f)
+                    .setDuration(300)
+                    .withEndAction(() -> {
+                        more_settings_layout.setVisibility(View.INVISIBLE);
+                        shownMoreSettings = false;
+                    });
         }
     }
 
@@ -553,6 +884,18 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
     private void initializeGlassesData() {
         // Populate the original glasses data lists
+        addOriginalGlasses();
+
+        if (prefManager.isAllFilesDownloaded()) {
+            addDownloadedGlasses();
+        }
+
+        addAllFilteredGlasses();
+
+        Log.d("Last Filtered Id", "" + filteredGlassesObjName.get(filteredGlassesId.size() - 1));
+    }
+
+    private void addOriginalGlasses() {
         originalGlassesId.add("1");
         originalGlassesImage.add(R.drawable.glasses_1);
         originalGlassesTitle.add("Timeless Rectangular Eyeglasses");
@@ -566,6 +909,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("5");
         originalGlassesPrice.add("2000.95");
         originalTransparency.add(defaultLensesTransparency);
+        originalIsDownloaded.add(false);
 
         originalGlassesId.add("2");
         originalGlassesImage.add(R.drawable.glasses_2);
@@ -580,6 +924,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("5");
         originalGlassesPrice.add("20");
         originalTransparency.add(defaultSunglassesLensesTransparency);
+        originalIsDownloaded.add(false);
 
         originalGlassesId.add("3");
         originalGlassesImage.add(R.drawable.glasses_3);
@@ -594,6 +939,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("5");
         originalGlassesPrice.add("20");
         originalTransparency.add(defaultLensesTransparency);
+        originalIsDownloaded.add(false);
 
         originalGlassesId.add("4");
         originalGlassesImage.add(R.drawable.glasses_4);
@@ -608,6 +954,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("5");
         originalGlassesPrice.add("20");
         originalTransparency.add(defaultLensesTransparency);
+        originalIsDownloaded.add(false);
 
         originalGlassesId.add("5");
         originalGlassesImage.add(R.drawable.glasses_5);
@@ -622,6 +969,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("5");
         originalGlassesPrice.add("20");
         originalTransparency.add(defaultLensesTransparency);
+        originalIsDownloaded.add(false);
 
         originalGlassesId.add("6");
         originalGlassesImage.add(R.drawable.glasses_6);
@@ -636,6 +984,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("5");
         originalGlassesPrice.add("20");
         originalTransparency.add(defaultLensesTransparency + ", eyesObject=0.5f, rightTempleObject=0.5f, leftTempleObject=0.5f, rightTempleTipObject=0.5f, leftTempleTipObject=0.5f");
+        originalIsDownloaded.add(false);
 
         originalGlassesId.add("7");
         originalGlassesImage.add(R.drawable.glasses_7);
@@ -650,6 +999,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("5");
         originalGlassesPrice.add("20");
         originalTransparency.add(defaultLensesTransparency);
+        originalIsDownloaded.add(false);
 
         originalGlassesId.add("8");
         originalGlassesImage.add(R.drawable.glasses_8);
@@ -664,6 +1014,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("5");
         originalGlassesPrice.add("20");
         originalTransparency.add(defaultLensesTransparency);
+        originalIsDownloaded.add(false);
 
         originalGlassesId.add("9");
         originalGlassesImage.add(R.drawable.glasses_9);
@@ -678,6 +1029,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("5");
         originalGlassesPrice.add("20");
         originalTransparency.add(defaultLensesTransparency);
+        originalIsDownloaded.add(false);
 
         originalGlassesId.add("10");
         originalGlassesImage.add(R.drawable.glasses_10);
@@ -692,6 +1044,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("0");
         originalGlassesPrice.add("20");
         originalTransparency.add(defaultLensesTransparency);
+        originalIsDownloaded.add(false);
 
         originalGlassesId.add("11");
         originalGlassesImage.add(R.drawable.glasses_11);
@@ -706,7 +1059,54 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         originalStacks.add("5");
         originalGlassesPrice.add("20");
         originalTransparency.add(defaultLensesTransparency);
+        originalIsDownloaded.add(false);
+    }
 
+    private void addDownloadedGlasses() {
+        int glassesCountDownloaded = prefManager.getGlassesCountDownloaded();
+
+        // Read and parse data from the JSON file
+        try {
+            FileInputStream fileInputStream = new FileInputStream(getExternalFilesDir(null) + "/data.json");
+            String jsonString = convertStreamToString(fileInputStream); // Converts InputStream to String
+            JSONObject jsonData = new JSONObject(jsonString);
+
+            // Get the glasses array from the JSON
+            JSONArray glassesArray = jsonData.getJSONArray("glasses");
+
+            int i = 0;
+
+            for (int count = originalGlassesId.size() + 1; count <= glassesCountDownloaded; count++) {
+                // Get the data for each glass
+                JSONObject glass = glassesArray.getJSONObject(i);  // Adjust for index
+
+                // Add the data to the lists
+                originalGlassesId.add(String.valueOf(glass.getInt("glassesId")));
+                originalGlassesImage.add(R.drawable.glasses_1);
+                originalGlassesTitle.add(glass.getString("glassesTitle"));
+                originalGlassesObjName.add(glass.getString("glassesObjName"));
+                originalTempleObjName.add(glass.getString("templeObjName"));
+                originalLensesObjName.add(glass.getString("lensesObjName"));
+                originalGlassesFrameType.add(glass.getString("glassesFrameType"));
+                originalGlassesType.add(glass.getString("glassesType"));
+                originalPadsObjName.add(glass.getString("padsObjName"));
+                originalDescription.add(glass.getString("description"));
+                originalStacks.add(String.valueOf(glass.getInt("stacks")));
+                originalGlassesPrice.add(String.valueOf(glass.getInt("price")));
+                String transparency = glass.getString("transparency").equals("defaultLensesTransparency") ? defaultLensesTransparency : glass.getString("transparency");
+                originalTransparency.add(transparency);
+                originalIsDownloaded.add(true);
+
+                i++;
+            }
+
+        } catch (IOException | JSONException e) {
+            e.printStackTrace();
+            Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void addAllFilteredGlasses() {
         // Initially show all glasses
         filteredGlassesId.addAll(originalGlassesId);
         filteredGlassesImage.addAll(originalGlassesImage);
@@ -721,6 +1121,12 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         filteredStacks.addAll(originalStacks);
         filteredGlassesPrice.addAll(originalGlassesPrice);
         filteredTransparency.addAll(originalTransparency);
+        filteredIsDownloaded.addAll(originalIsDownloaded);
+    }
+
+    private String convertStreamToString(InputStream is) throws IOException {
+        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
     }
 
     private void filterGlasses() {
@@ -740,6 +1146,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         filteredStacks.clear();
         filteredGlassesPrice.clear();
         filteredTransparency.clear();
+        filteredIsDownloaded.clear();
 
         if (selectedFrameTypes.contains("All")) {
             // If "All" is selected, show all glasses
@@ -756,6 +1163,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             filteredStacks.addAll(originalStacks);
             filteredGlassesPrice.addAll(originalGlassesPrice);
             filteredTransparency.addAll(originalTransparency);
+            filteredIsDownloaded.addAll(originalIsDownloaded);
         } else {
             for (int i = 0; i < originalGlassesId.size(); i++) {
                 boolean isFavorite = prefManager != null && prefManager.isFavorite(originalGlassesId.get(i));
@@ -825,6 +1233,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         filteredStacks.add(originalStacks.get(index));
         filteredGlassesPrice.add(originalGlassesPrice.get(index));
         filteredTransparency.add(originalTransparency.get(index));
+        filteredIsDownloaded.add(originalIsDownloaded.get(index));
     }
 
     @Override
@@ -913,13 +1322,12 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         try {
             session.resume();
 
-            // Show the tutorial on resume
-            prefManager = new PrefManager(this);
-
             if (prefManager.isFirstTimeLaunch()) {
-                showTutorial();
-                if (progressDialog != null && progressDialog.isShowing()) {
-                    progressDialog.dismiss();
+                if (areViewsInitialized()) {
+                    showWelcomeDialog();
+                } else {
+                    // Handle the case where views might not be initialized
+                    Log.e(TAG, "Views are not properly initialized for tutorial");
                 }
             }
 
@@ -931,6 +1339,22 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
         surfaceView.onResume();
         displayRotationHelper.onResume();
+    }
+
+    // Check if all necessary views are initialized
+    private boolean areViewsInitialized() {
+        return findViewById(R.id.glassesCardView) != null &&
+                findViewById(R.id.ai_recommendation_Button) != null &&
+                findViewById(R.id.showMoreGlassesButton) != null &&
+                findViewById(R.id.more_settings_button) != null &&
+                findViewById(R.id.color_picker_button) != null &&
+                findViewById(R.id.showGlassesButton) != null &&
+                findViewById(R.id.chatSupportButton) != null &&
+                findViewById(R.id.face_type_Spinner) != null &&
+                findViewById(R.id.frameTypeSpinner) != null &&
+                findViewById(R.id.capture_button) != null &&
+                findViewById(R.id.last_photo_image_view) != null &&
+                findViewById(R.id.replay_tutorial_Button) != null;
     }
 
     private boolean isArCoreInstalled() {
@@ -1136,32 +1560,34 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             leftEarObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);*/
 
             // Glasses render
-            eyesObject.createOnGlThread(this, "models/glasses/" + glassesModel, "models/glasses/albedo.png");
+            eyesObject.createOnGlThread(this, "models/glasses/" + glassesModel, "models/glasses/albedo.png", false);
             eyesObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
             eyesObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
 
-            rightTempleObject.createOnGlThread(this, "models/glasses/glasses_1_temple_right.obj", "models/glasses/albedo.png");
+            rightTempleObject.createOnGlThread(this, "models/glasses/glasses_1_temple_right.obj", "models/glasses/albedo.png", false);
             rightTempleObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
             rightTempleObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
 
-            leftTempleObject.createOnGlThread(this, "models/glasses/glasses_1_temple_left.obj", "models/glasses/albedo.png");
+            leftTempleObject.createOnGlThread(this, "models/glasses/glasses_1_temple_left.obj", "models/glasses/albedo.png", false);
             leftTempleObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
             leftTempleObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
 
-            rightTempleTipObject.createOnGlThread(this, "models/glasses/glasses_1_temple_tip_right.obj", "models/glasses/albedo.png");
+            rightTempleTipObject.createOnGlThread(this, "models/glasses/glasses_1_temple_tip_right.obj", "models/glasses/albedo.png", false);
             rightTempleTipObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
             rightTempleTipObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
 
-            leftTempleTipObject.createOnGlThread(this, "models/glasses/glasses_1_temple_tip_left.obj", "models/glasses/albedo.png");
+            leftTempleTipObject.createOnGlThread(this, "models/glasses/glasses_1_temple_tip_left.obj", "models/glasses/albedo.png", false);
             leftTempleTipObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
             leftTempleTipObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
 
-            lensesObject.createOnGlThread(this, "models/glasses/glasses_1_lenses.obj", "models/glasses/albedo_5.png");
+            lensesObject.createOnGlThread(this, "models/glasses/glasses_1_lenses.obj", "models/glasses/albedo_5.png", false);
             lensesObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
             lensesObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
         } catch (IOException e) {
             Log.e(TAG, "Failed to read an asset file", e);
         }
+
+        hideLoadingIndicator();
     }
 
     @Override
@@ -1241,7 +1667,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                     });*/
                     capture_image_recommendation = false;
 
-                    detectFaces(image);
+                    detectFaces(image, capturedBitmap);
 
                     // Hide the capture_LinearLayout after 2 seconds
                     /*new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
@@ -1258,7 +1684,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                         }
                     });
                     capture_button.completeLoading();
+
                     capture_image_recommendation = false;
+
                     // Hide the capture_LinearLayout after 2 seconds
                     /*new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                         @Override
@@ -1334,16 +1762,28 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 if (eyesObjectNeedsCreation) {
                     try {
 
+
+
                         // Create the eyesObject
-                        String glassesModelPath = "models/glasses/" + glassesModel.trim();
+                        String glassesModelPath = modelBasePath + glassesModel.trim();
                         String glassesModelAlbedo = "models/glasses/albedo.png";
                         if (glassesModel.contains(":")) {
                             String[] glassesModelComponents = glassesModel.split(":");
-                            glassesModelPath = "models/glasses/" + glassesModelComponents[0].trim();
+                            glassesModelPath = modelBasePath + glassesModelComponents[0].trim();
                             glassesModelAlbedo = "models/glasses/" + glassesModelComponents[1].trim() + ".png";
                         }
 
-                        eyesObject.createOnGlThread(this, glassesModelPath, glassesModelAlbedo);
+
+                        if(isDownloaded) {
+                            File glassesModelFile = new File(glassesModelPath);
+
+                            if(glassesModelFile.exists()) {
+                                eyesObject.createOnGlThread(this, glassesModelFile.getAbsolutePath(), glassesModelAlbedo, true);
+                            }
+                        } else {
+                            eyesObject.createOnGlThread(this, glassesModelPath, glassesModelAlbedo, false);
+                        }
+
 
 
                         if (!templeModel.isEmpty()) {
@@ -1354,47 +1794,80 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                             String hingePart = templeParts.length > 2 ? templeParts[2].trim() : null;
 
                             // Handle temple part
-                            String templePartPath = "models/glasses/" + templePart + "_right.obj";
+                            String templePartPath = modelBasePath + templePart + "_right.obj";
                             String templePartAlbedo = "models/glasses/albedo.png";
                             if (templePart.contains(":")) {
                                 String[] templePartComponents = templePart.split(":");
-                                templePartPath = "models/glasses/" + templePartComponents[0].trim() + "_right.obj";
+                                templePartPath = modelBasePath + templePartComponents[0].trim() + "_right.obj";
                                 templePartAlbedo = "models/glasses/" + templePartComponents[1].trim() + ".png";
                             }
 
-                            rightTempleObject.createOnGlThread(this, templePartPath, templePartAlbedo);
-                            leftTempleObject.createOnGlThread(this, templePartPath.replace("_right", "_left"), templePartAlbedo);
+                            if(isDownloaded) {
+                                File templePartFile = new File(templePartPath);
+                                File templePartLeftFile = new File(templePartPath.replace("_right", "_left"));
+
+                                if(templePartFile.exists()) {
+                                    rightTempleObject.createOnGlThread(this, templePartFile.getAbsolutePath(), templePartAlbedo, true);
+                                    leftTempleObject.createOnGlThread(this, templePartLeftFile.getAbsolutePath(), templePartAlbedo, true);
+                                }
+                            } else {
+                                rightTempleObject.createOnGlThread(this, templePartPath, templePartAlbedo, false);
+                                leftTempleObject.createOnGlThread(this, templePartPath.replace("_right", "_left"), templePartAlbedo, false);
+                            }
 
                             // Handle temple tip part
                             if (templeTipPart != null) {
 
-                                String templeTipPartPath = "models/glasses/" + templeTipPart + "_right.obj";
+                                String templeTipPartPath = modelBasePath + templeTipPart + "_right.obj";
                                 String templeTipPartAlbedo = "models/glasses/albedo.png";
                                 if (templeTipPart.contains(":")) {
                                     String[] templeTipPartComponents = templeTipPart.split(":");
-                                    templeTipPartPath = "models/glasses/" + templeTipPartComponents[0].trim() + "_right.obj";
+                                    templeTipPartPath = modelBasePath + templeTipPartComponents[0].trim() + "_right.obj";
                                     templeTipPartAlbedo = "models/glasses/" + templeTipPartComponents[1].trim() + ".png";
                                 }
 
-                                rightTempleTipObject.createOnGlThread(this, templeTipPartPath, templeTipPartAlbedo);
+                                if(isDownloaded) {
+                                    File templeTipPartFile = new File(templeTipPartPath);
+                                    File templeTipPartLeftFile = new File(templeTipPartPath.replace("_right", "_left"));
 
-                                leftTempleTipObject.createOnGlThread(this, templeTipPartPath.replace("_right", "_left"), templeTipPartAlbedo);
+                                    if (templeTipPartFile.exists()) {
+                                        rightTempleTipObject.createOnGlThread(this, templeTipPartFile.getAbsolutePath(), templeTipPartAlbedo, true);
+
+                                        leftTempleTipObject.createOnGlThread(this, templeTipPartLeftFile.getAbsolutePath(), templeTipPartAlbedo, true);
+                                    }
+                                } else {
+                                    rightTempleTipObject.createOnGlThread(this, templeTipPartPath, templeTipPartAlbedo, false);
+
+                                    leftTempleTipObject.createOnGlThread(this, templeTipPartPath.replace("_right", "_left"), templeTipPartAlbedo, false);
+                                }
+
                             }
 
                             // Handle hinge part
                             if (hingePart != null) {
-                                String hingePartRightPath = "models/glasses/" + hingePart + "_right.obj";
-                                String hingePartLeftPath = "models/glasses/" + hingePart + "_left.obj";
+                                String hingePartRightPath = modelBasePath + hingePart + "_right.obj";
+                                String hingePartLeftPath = modelBasePath + hingePart + "_left.obj";
                                 String hingePartAlbedo = "models/glasses/albedo.png";
                                 if (hingePart.contains(":")) {
                                     String[] hingePartComponents = hingePart.split(":");
-                                    hingePartRightPath = "models/glasses/" + hingePartComponents[0].trim() + "_right.obj";
-                                    hingePartLeftPath = "models/glasses/" + hingePartComponents[0].trim() + "_left.obj";
+                                    hingePartRightPath = modelBasePath + hingePartComponents[0].trim() + "_right.obj";
+                                    hingePartLeftPath = modelBasePath + hingePartComponents[0].trim() + "_left.obj";
                                     hingePartAlbedo = "models/glasses/" + hingePartComponents[1].trim() + ".png";
                                 }
 
-                                rightHingeObject.createOnGlThread(this, hingePartRightPath, hingePartAlbedo);
-                                leftHingeObject.createOnGlThread(this, hingePartLeftPath, hingePartAlbedo);
+                                if(isDownloaded) {
+                                    File hingePartRightFile = new File(hingePartRightPath);
+                                    File hingePartLeftFile = new File(hingePartLeftPath);
+
+                                    if(hingePartRightFile.exists()) {
+                                        rightHingeObject.createOnGlThread(this, hingePartRightFile.getAbsolutePath(), hingePartAlbedo, true);
+                                        leftHingeObject.createOnGlThread(this, hingePartLeftFile.getAbsolutePath(), hingePartAlbedo, true);
+                                    }
+                                } else {
+                                    rightHingeObject.createOnGlThread(this, hingePartRightPath, hingePartAlbedo, false);
+                                    leftHingeObject.createOnGlThread(this, hingePartLeftPath, hingePartAlbedo, false);
+                                }
+
                             }
                         }
 
@@ -1403,29 +1876,47 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                             padParts = padsModel.contains(",") ? padsModel.split(",") : new String[]{padsModel};
 
                             // Create the pads object
-                            String padModelPath = "models/glasses/" + padParts[0].trim();
+                            String padModelPath = modelBasePath + padParts[0].trim();
                             String padModelAlbedo = "models/glasses/albedo_2.png";
                             if (padParts[0].contains(":")) {
                                 String[] padModelComponents = padParts[0].split(":");
-                                padModelPath = "models/glasses/" + padModelComponents[0].trim();
+                                padModelPath = modelBasePath + padModelComponents[0].trim();
                                 padModelAlbedo = "models/glasses/" + padModelComponents[1].trim() + ".png";
                             }
 
-                            padsObject.createOnGlThread(this, padModelPath, padModelAlbedo);
+                            if(isDownloaded) {
+                                File padModelFile = new File(padModelPath);
+
+                                if(padModelFile.exists()) {
+                                    padsObject.createOnGlThread(this, padModelFile.getAbsolutePath(), padModelAlbedo, true);
+                                }
+                            } else {
+                                padsObject.createOnGlThread(this, padModelPath, padModelAlbedo, false);
+                            }
+
                             padsObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
                             padsObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
 
                             // Create the pads arms object if specified
                             if (padParts.length > 1) {
-                                String padArmsModelPath = "models/glasses/" + padParts[1].trim();
+                                String padArmsModelPath = modelBasePath + padParts[1].trim();
                                 String padArmsModelAlbedo = "models/glasses/albedo_2.png";
                                 if (padParts[1].contains(":")) {
                                     String[] padArmsModelComponents = padParts[1].split(":");
-                                    padArmsModelPath = "models/glasses/" + padArmsModelComponents[0].trim();
+                                    padArmsModelPath = modelBasePath + padArmsModelComponents[0].trim();
                                     padArmsModelAlbedo = "models/glasses/" + padArmsModelComponents[1].trim() + ".png";
                                 }
 
-                                padsArmsObject.createOnGlThread(this, padArmsModelPath, padArmsModelAlbedo);
+                                if(isDownloaded) {
+                                    File padArmsModelFile = new File(padArmsModelPath);
+
+                                    if(padArmsModelFile.exists()) {
+                                        padsArmsObject.createOnGlThread(this, padArmsModelFile.getAbsolutePath(), padArmsModelAlbedo, true);
+                                    }
+                                } else {
+                                    padsArmsObject.createOnGlThread(this, padArmsModelPath, padArmsModelAlbedo, false);
+                                }
+
                                 padsArmsObject.setMaterialProperties(0.0f, 1.0f, 0.1f, 6.0f);
                                 padsArmsObject.setBlendMode(ObjectRenderer.BlendMode.AlphaBlending);
                             } else {
@@ -1436,15 +1927,24 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                         if(!lensesModel.isEmpty()) {
 
                             // Create the lenses object
-                            String lensesModelPath = "models/glasses/" + lensesModel.trim();
+                            String lensesModelPath = modelBasePath + lensesModel.trim();
                             String lensesModelAlbedo = "models/glasses/albedo_2.png";
                             if (lensesModel.contains(":")) {
                                 String[] lensesModelComponents = lensesModel.split(":");
-                                lensesModelPath = "models/glasses/" + lensesModelComponents[0].trim();
+                                lensesModelPath = modelBasePath + lensesModelComponents[0].trim();
                                 lensesModelAlbedo = "models/glasses/" + lensesModelComponents[1].trim() + ".png";
                             }
 
-                            lensesObject.createOnGlThread(this, lensesModelPath, lensesModelAlbedo);
+                            if(isDownloaded) {
+                                File lensesModelFile = new File(lensesModelPath);
+
+                                if (lensesModelFile.exists()) {
+                                    lensesObject.createOnGlThread(this, lensesModelFile.getAbsolutePath(), lensesModelAlbedo, true);
+                                }
+                            } else {
+                                lensesObject.createOnGlThread(this, lensesModelPath, lensesModelAlbedo, false);
+                            }
+
                         }
 
                         eyesObjectNeedsCreation = false;
@@ -1636,10 +2136,19 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             }
 
             if(capture_image_ai) {
-                Bitmap capturedBitmap = createBitmapFromGLSurface(0, 0, surfaceView.getWidth(), surfaceView.getHeight(), gl);
+                //Bitmap capturedBitmap = createBitmapFromGLSurface(0, 0, surfaceView.getWidth(), surfaceView.getHeight(), gl);
 
-                if (capturedBitmap != null) {
-                    detectFaceShape(capturedBitmap);
+                if (croppedFaceBitmap != null) {
+                    croppedFaceBitmap = Bitmap.createScaledBitmap(croppedFaceBitmap, 224, 224, true);
+                    croppedFaceBitmap = adjustBrightnessContrast(croppedFaceBitmap, 50, 1.2f);
+                    detectFaceShape(croppedFaceBitmap);
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            dashedFaceAreaHide();
+                        }
+                    });
 
                     capture_image_ai = false;
                 } else {
@@ -1667,6 +2176,11 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         } finally {
             GLES20.glDepthMask(true);
         }
+    }
+
+    private void dashedFaceAreaHide() {
+        dashedFaceAreaLayout.setVisibility(View.GONE);
+        ai_recommendation_Button.setClickable(true);
     }
 
     private void loadLastPhoto() {
@@ -1745,7 +2259,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 //            scaleFactor = initialScaleFactor + (progress / 100.0f);
             scaleFactor = (progress / 100.0f) + 0.5f;
-            debug_x.setText("scaleFactor: " + scaleFactor);
+            debug_x.setText("Scale: " + scaleFactor);
         }
 
         @Override
@@ -1812,7 +2326,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         templeVisible = !templeVisible;
     }
 
-    public void updateGlassesModel(String newModel, String newTemple, String newLenses, String newGlassesType, String newPads, String newTransparency) {
+    public void updateGlassesModel(String newModel, String newTemple, String newLenses, String newGlassesType, String newPads, String newTransparency, boolean newIsDownloaded) {
         templeParts = new String[]{""};
         padParts = new String[]{""};
         glassesModel = newModel;
@@ -1821,12 +2335,17 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         glassesType = newGlassesType;
         padsModel = newPads;
         transparencyObj = newTransparency;
+        isDownloaded = newIsDownloaded;
 
         if(lensesModel.isEmpty()) {
-           lensesObjectCustomColor = DEFAULT_COLOR_INT;
+            lensesObjectCustomColor = DEFAULT_COLOR_INT;
+
         } else {
             lensesObjectCustomColor = fromFloatToIntColor(lensesObject.getCustomColor());
         }
+
+        templeObjectCustomColor = DEFAULT_COLOR_INT;
+        templeTipObjectCustomColor = DEFAULT_COLOR_INT;
 
         // Set the flag to indicate that eyesObject needs to be created
         eyesObjectNeedsCreation = true;
@@ -1834,13 +2353,18 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
     private void showCheckboxColorPickerDialog() {
         View checkboxDialogView = LayoutInflater.from(this).inflate(R.layout.dialog_color_picker, null);
-        MaterialCheckBox frameCheckbox = checkboxDialogView.findViewById(R.id.frame_checkbox);
-        MaterialCheckBox templeCheckbox = checkboxDialogView.findViewById(R.id.temple_checkbox);
-        MaterialCheckBox templeTipCheckbox = checkboxDialogView.findViewById(R.id.temple_tip_checkbox);
-        MaterialCheckBox templeHingeCheckbox = checkboxDialogView.findViewById(R.id.temple_hinge_checkbox);
-        MaterialCheckBox padArmsCheckbox = checkboxDialogView.findViewById(R.id.pad_arms_checkbox);
-        MaterialCheckBox lensesCheckbox = checkboxDialogView.findViewById(R.id.lenses_checkbox);
+        SwitchMaterial frameCheckbox = checkboxDialogView.findViewById(R.id.frame_checkbox);
+        SwitchMaterial templeCheckbox = checkboxDialogView.findViewById(R.id.temple_checkbox);
+        SwitchMaterial templeTipCheckbox = checkboxDialogView.findViewById(R.id.temple_tip_checkbox);
+        LinearLayout templeTipCheckboxLayout = checkboxDialogView.findViewById(R.id.temple_tip_layout);
+        SwitchMaterial templeHingeCheckbox = checkboxDialogView.findViewById(R.id.temple_hinge_checkbox);
+        LinearLayout templeHingeCheckboxLayout = checkboxDialogView.findViewById(R.id.temple_hinge_layout);
+        SwitchMaterial padArmsCheckbox = checkboxDialogView.findViewById(R.id.pad_arms_checkbox);
+        LinearLayout padArmsCheckboxLayout = checkboxDialogView.findViewById(R.id.pad_arms_layout);
+        SwitchMaterial lensesCheckbox = checkboxDialogView.findViewById(R.id.lenses_checkbox);
+        LinearLayout lensesCheckboxLayout = checkboxDialogView.findViewById(R.id.lenses_layout);
         Button okButton = checkboxDialogView.findViewById(R.id.ok_button);
+        Button resetButton = checkboxDialogView.findViewById(R.id.reset_button);
 
         AlertDialog checkboxDialog = new AlertDialog.Builder(this)
                 .setView(checkboxDialogView)
@@ -1849,7 +2373,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         frameCheckbox.setChecked(isFrameColorSelected);
 
         if(!lensesModel.isEmpty()) {
-            lensesCheckbox.setVisibility(View.VISIBLE);
+            lensesCheckboxLayout.setVisibility(View.VISIBLE);
             lensesCheckbox.setChecked(isLensesColorSelected);
         }
 
@@ -1858,17 +2382,17 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         padArmsCheckbox.setChecked(isPadArmsColorSelected);
 
         if(templeParts.length > 1) {
-            templeTipCheckbox.setVisibility(View.VISIBLE);
+            templeTipCheckboxLayout.setVisibility(View.VISIBLE);
             templeTipCheckbox.setChecked(isTempleTipColorSelected);
         }
 
         if(templeParts.length > 2) {
-            templeHingeCheckbox.setVisibility(View.VISIBLE);
+            templeHingeCheckboxLayout.setVisibility(View.VISIBLE);
             templeHingeCheckbox.setChecked(isTempleHingeColorSelected);
         }
 
         if(padParts.length > 1) {
-            padArmsCheckbox.setVisibility(View.VISIBLE);
+            padArmsCheckboxLayout.setVisibility(View.VISIBLE);
             padArmsCheckbox.setChecked(isPadArmsColorSelected);
         }
 
@@ -1891,7 +2415,36 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             showColorPickerDialog();
         });
 
+        resetButton.setOnClickListener(v -> {
+            resetColor();
+
+            isFrameColorSelected = frameCheckbox.isChecked();
+            if(!lensesModel.isEmpty()) {
+                isLensesColorSelected = lensesCheckbox.isChecked();
+            }
+            isTempleColorSelected = templeCheckbox.isChecked();
+            if(templeParts.length > 1) {
+                isTempleTipColorSelected = templeTipCheckbox.isChecked();
+            }
+            if(templeParts.length > 2) {
+                isTempleHingeColorSelected = templeHingeCheckbox.isChecked();
+            }
+            if(padParts.length > 1) {
+                isPadArmsColorSelected = padArmsCheckbox.isChecked();
+            }
+            checkboxDialog.dismiss();
+        });
+
         checkboxDialog.show();
+    }
+
+    private void resetColor() {
+        clearCustomColor();
+        previousColor = DEFAULT_COLOR_INT;
+        eyesObjectCustomColor = DEFAULT_COLOR_INT;
+        lensesObjectCustomColor = DEFAULT_COLOR_INT;
+        templeObjectCustomColor = DEFAULT_COLOR_INT;
+        templeTipObjectCustomColor = DEFAULT_COLOR_INT;
     }
 
 
@@ -1905,6 +2458,8 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 previousColor = DEFAULT_COLOR_INT;
                 eyesObjectCustomColor = DEFAULT_COLOR_INT;
                 lensesObjectCustomColor = DEFAULT_COLOR_INT;
+                templeObjectCustomColor = DEFAULT_COLOR_INT;
+                templeTipObjectCustomColor = DEFAULT_COLOR_INT;
             }
 
             @Override
@@ -1928,7 +2483,9 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 if(isTempleTipColorSelected && templeParts.length > 1) {
                     rightTempleTipObject.setCustomColor(customColor);
                     leftTempleTipObject.setCustomColor(customColor);
+                    templeTipObjectCustomColor = fromFloatToIntColor(rightTempleTipObject.getCustomColor());
                 }
+
 
                 if(isTempleHingeColorSelected && templeParts.length > 2) {
                     rightHingeObject.setCustomColor(customColor);
@@ -1942,6 +2499,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 if (isTempleColorSelected) {
                     rightTempleObject.setCustomColor(customColor);
                     leftTempleObject.setCustomColor(customColor);
+                    templeObjectCustomColor = fromFloatToIntColor(rightTempleObject.getCustomColor());
                 }
 
             }
@@ -1994,14 +2552,17 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
     private void showCheckboxShowGlassesDialog() {
         View checkboxDialogView = LayoutInflater.from(this).inflate(R.layout.dialog_show_glasses, null);
-        MaterialCheckBox frameCheckbox = checkboxDialogView.findViewById(R.id.frame_checkbox);
-        MaterialCheckBox templeCheckbox = checkboxDialogView.findViewById(R.id.temple_checkbox);
+        SwitchMaterial frameCheckbox = checkboxDialogView.findViewById(R.id.frame_checkbox);
+        SwitchMaterial templeCheckbox = checkboxDialogView.findViewById(R.id.temple_checkbox);
         MaterialCheckBox rightTempleCheckbox = checkboxDialogView.findViewById(R.id.temple_right_checkbox);
         MaterialCheckBox leftTempleCheckbox = checkboxDialogView.findViewById(R.id.temple_left_checkbox);
         MaterialCheckBox rightTempleTipCheckbox = checkboxDialogView.findViewById(R.id.temple_tip_right_checkbox);
         MaterialCheckBox leftTempleTipCheckbox = checkboxDialogView.findViewById(R.id.temple_tip_left_checkbox);
+        LinearLayout templeTipCheckboxLayout = checkboxDialogView.findViewById(R.id.temple_tip_layout);
+        SwitchMaterial templeTipCheckbox = checkboxDialogView.findViewById(R.id.temple_tip_checkbox);
         MaterialCheckBox autoHideTemplesCheckbox = checkboxDialogView.findViewById(R.id.auto_hide_temple_checkbox);
-        MaterialCheckBox lensesCheckbox = checkboxDialogView.findViewById(R.id.lenses_checkbox);
+        SwitchMaterial lensesCheckbox = checkboxDialogView.findViewById(R.id.lenses_checkbox);
+        LinearLayout lensesCheckboxLayout = checkboxDialogView.findViewById(R.id.lenses_layout);
         ConstraintLayout lensesVisibilityLayout = checkboxDialogView.findViewById(R.id.lensesVisibilityLayout);
         SeekBar sliderLensesVisibilityBar = checkboxDialogView.findViewById(R.id.slider_lenses_visibility_bar);
         MaterialCheckBox lensesFlareCheckbox = checkboxDialogView.findViewById(R.id.lenses_flare_checkbox);
@@ -2014,7 +2575,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
         frameCheckbox.setChecked(glassesVisible);
         if(!lensesModel.isEmpty()) {
-            lensesCheckbox.setVisibility(View.VISIBLE);
+            lensesCheckboxLayout.setVisibility(View.VISIBLE);
             lensesCheckbox.setChecked(lensesVisible);
             lensesFlareCheckbox.setVisibility(View.VISIBLE);
             lensesFlareCheckbox.setChecked(lensesFlareVisible);
@@ -2022,17 +2583,34 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             int progress = (int) ((lensesVisibilitySliderValue - 0.1f) / 0.9f * 90);
             sliderLensesVisibilityBar.setProgress(progress);
         }
+
         templeCheckbox.setChecked(templeVisible);
+
         if(templeParts.length > 1) {
-            rightTempleTipCheckbox.setVisibility(View.VISIBLE);
-            leftTempleTipCheckbox.setVisibility(View.VISIBLE);
+            templeTipCheckboxLayout.setVisibility(View.VISIBLE);
 
             rightTempleTipCheckbox.setChecked(rightTempleTipVisible);
             leftTempleTipCheckbox.setChecked(leftTempleTipVisible);
         }
+
+        templeTipCheckbox.setChecked(rightTempleTipCheckbox.isChecked() || leftTempleTipCheckbox.isChecked());
+
+        templeTipCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            rightTempleTipCheckbox.setChecked(isChecked);
+            leftTempleTipCheckbox.setChecked(isChecked);
+        });
+
         rightTempleCheckbox.setChecked(rightTempleVisible);
         leftTempleCheckbox.setChecked(leftTempleVisible);
         autoHideTemplesCheckbox.setChecked(autoHideTemple);
+
+        rightTempleCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            rightTempleTipCheckbox.setChecked(isChecked);
+        });
+
+        leftTempleCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            leftTempleTipCheckbox.setChecked(isChecked);
+        });
 
         frameCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             templeCheckbox.setChecked(isChecked);
@@ -2052,6 +2630,10 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
         lensesVisibilityIcon.setOnClickListener(v -> {
             sliderLensesVisibilityBar.setProgress(0);
+        });
+
+        lensesCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            lensesFlareCheckbox.setChecked(isChecked);
         });
 
         sliderLensesVisibilityBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -2130,7 +2712,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         return bitmap != null && bitmap.getWidth() > 0 && bitmap.getHeight() > 0;
     }
 
-    private void detectFaces(InputImage image) {
+    private void detectFaces(InputImage image, Bitmap capturedBitmap) {
 
         // [START get_detector]
         FaceDetector detector = FaceDetection.getClient(face_detector_options);
@@ -2148,7 +2730,10 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                                         // Task completed successfully
                                         Log.d(TAG, "Face detection successful. Number of faces detected: " + faces.size());
                                         if(faces.size() == 0) {
-                                            Toast.makeText(CameraFaceActivity.this, "No face detected!", Toast.LENGTH_SHORT).show();
+                                            dashedFaceText.setText("NO FACE DETECTED");
+                                            new Handler().postDelayed(() -> {
+                                                dashedFaceAreaHide();
+                                            }, 1000);
                                             capture_button.completeLoading();
                                         }
                                         // [START_EXCLUDE]
@@ -2156,10 +2741,10 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                                         for (Face face : faces) {
                                             Rect bounds = face.getBoundingBox();
                                             // Use the bounding box information here
-                                            int left = bounds.left;
-                                            int top = bounds.top;
-                                            int right = bounds.right;
-                                            int bottom = bounds.bottom;
+//                                            int left = bounds.left;
+//                                            int top = bounds.top;
+//                                            int right = bounds.right;
+//                                            int bottom = bounds.bottom;
 
                                             float rotY = face.getHeadEulerAngleY();  // Head is rotated to the right rotY degrees
                                             float rotZ = face.getHeadEulerAngleZ();  // Head is tilted sideways rotZ degrees
@@ -2191,10 +2776,63 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                                                 Log.d(TAG, "Right eye open probability: " + rightEyeOpenProb);
                                             }*/
 
-                                            // If face tracking was enabled:
+                                            // If face tracking was enabled no padding:
+//                                            if (face.getTrackingId() != null) {
+//                                                int id = face.getTrackingId();
+//
+//                                                // Clamp bounding box dimensions to the bitmap size
+//                                                int left = Math.max(0, bounds.left);
+//                                                int top = Math.max(0, bounds.top);
+//                                                int right = Math.min(capturedBitmap.getWidth(), bounds.right);
+//                                                int bottom = Math.min(capturedBitmap.getHeight(), bounds.bottom);
+//
+//                                                int width = right - left;
+//                                                int height = bottom - top;
+//
+//                                                // Only create the cropped bitmap if width and height are positive
+//                                                if (width > 0 && height > 0) {
+//                                                    croppedFaceBitmap = Bitmap.createBitmap(
+//                                                            capturedBitmap,
+//                                                            left,
+//                                                            top,
+//                                                            width,
+//                                                            height
+//                                                    );
+//                                                    Log.d(TAG, "Face tracking ID: " + id);
+//                                                } else {
+//                                                    Log.e(TAG, "Invalid bounding box dimensions for cropping: width=" + width + ", height=" + height);
+//                                                }
+//                                            }
+
+                                            // With Padding:
                                             if (face.getTrackingId() != null) {
                                                 int id = face.getTrackingId();
-                                                Log.d(TAG, "Face tracking ID: " + id);
+
+                                                // Define padding as a percentage of face dimensions
+                                                int padding = (int) (0.1 * Math.min(bounds.width(), bounds.height())); // 10% padding
+
+                                                // Clamp and adjust the bounding box
+                                                int left = Math.max(0, bounds.left - padding);
+                                                int top = Math.max(0, bounds.top - padding);
+                                                int right = Math.min(capturedBitmap.getWidth(), bounds.right + padding);
+                                                int bottom = Math.min(capturedBitmap.getHeight(), bounds.bottom + padding);
+
+                                                int width = right - left;
+                                                int height = bottom - top;
+
+                                                // Only create the cropped bitmap if width and height are valid
+                                                if (width > 0 && height > 0) {
+                                                    croppedFaceBitmap = Bitmap.createBitmap(
+                                                            capturedBitmap,
+                                                            left,
+                                                            top,
+                                                            width,
+                                                            height
+                                                    );
+                                                    Log.d(TAG, "Face tracking ID: " + id);
+                                                } else {
+                                                    Log.e(TAG, "Invalid bounding box dimensions for cropping: width=" + width + ", height=" + height);
+                                                }
                                             }
 
                                             analyzeFaceShape(face);
@@ -2344,26 +2982,32 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
             case "Round":
                 recommendedFrames.add("Rectangular frame");
                 recommendedFrames.add("Angular frame");
+                recommendedFrames.add("Square frame");
                 face_shape_ImageView.setImageResource(R.drawable.face_shape_round);
                 break;
             case "Heart":
                 recommendedFrames.add("Cat-eye frame");
                 recommendedFrames.add("Oval frame");
+                recommendedFrames.add("Square frame");
                 face_shape_ImageView.setImageResource(R.drawable.face_shape_heart);
                 break;
             case "Oval":
                 recommendedFrames.add("Wayfarer frame");
                 recommendedFrames.add("Aviator frame");
+                recommendedFrames.add("Browline frame");
+                recommendedFrames.add("Square frame");
                 face_shape_ImageView.setImageResource(R.drawable.face_shape_oval);
                 break;
             case "Square":
                 recommendedFrames.add("Round frame");
                 recommendedFrames.add("Oval frame");
+                recommendedFrames.add("Aviator frame");
                 face_shape_ImageView.setImageResource(R.drawable.face_shape_square);
                 break;
             case "Long":
                 recommendedFrames.add("Wide frame");
                 recommendedFrames.add("Oversize frame");
+                recommendedFrames.add("Browline frame");
                 face_shape_ImageView.setImageResource(R.drawable.face_shape_long);
                 break;
             default:
@@ -2383,7 +3027,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         }
         String response = responseBuilder.toString().trim();
 
-        face_shape_TextView.setText(faceShape);
+        face_shape_TextView.setText(faceShape.replace("Long", "Long/Oblong"));
         face_shape_description_TextView.setText(response);
         isRecommendationPopupVisible = true;
         return response;
@@ -2398,72 +3042,93 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
         TapTargetSequence sequence = new TapTargetSequence(this)
                 .targets(
                         TapTarget.forView(findViewById(R.id.glassesCardView), "Select Through Glasses", "Tap to try on different glasses. Long press to see the product.")
-                                .cancelable(false)
                                 .drawShadow(true)
-                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
+                                .tintTarget(true)
+                                .transparentTarget(true)
+                                .cancelable(true),
+                        TapTarget.forView(findViewById(R.id.showMoreGlassesDescriptionButton), "Glasses Description", "See the glasses in full details, and inquire its availability.")
+                                .drawShadow(true)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
                         TapTarget.forView(findViewById(R.id.ai_recommendation_Button), "AI Button", "This button analyzes your face shape and chooses the best frame for you.")
-                                .cancelable(false)
                                 .drawShadow(true)
-                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
                         TapTarget.forView(findViewById(R.id.showMoreGlassesButton), "More Options", "This is where you can customize your glasses in real-time: scale, move up and down, and rotation.")
-                                .cancelable(false)
                                 .drawShadow(true)
-                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
-                        TapTarget.forView(findViewById(R.id.showGlassesButton), "Eye Button", "Toggle glasses on and off. Long press to hide/show specific glasses parts (E.g. Temples, Temple Left, Temple Right)")
-                                .cancelable(false)
+                        TapTarget.forView(findViewById(R.id.more_settings_button), "Hide Settings", "Show/Hide settings.")
                                 .drawShadow(true)
-                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
                         TapTarget.forView(findViewById(R.id.color_picker_button), "Color Palette", "Change the glasses color. Long press to change specific glasses parts color (E.g. Frame, Temple)")
-                                .cancelable(false)
                                 .drawShadow(true)
-                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
+                                .tintTarget(true)
+                                .transparentTarget(true)
+                                .cancelable(true),
+                        TapTarget.forView(findViewById(R.id.showGlassesButton), "Eye Button", "Toggle glasses on and off. Long press to hide/show specific glasses parts (E.g. Temples, Temple Left, Temple Right)")
+                                .drawShadow(true)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
+                                .tintTarget(true)
+                                .transparentTarget(true)
+                                .cancelable(true),
+                        TapTarget.forView(findViewById(R.id.chatSupportButton), "Chat Support", "Allows you to directly connect with our support team to inquire about product availability, book appointments, and get answers to any questions you might have.")
+                                .drawShadow(true)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
                         TapTarget.forView(findViewById(R.id.face_type_Spinner), "Face Type Dropdown", "Filter glasses based on the face type.")
-                                .cancelable(false)
                                 .drawShadow(true)
-                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
                         TapTarget.forView(findViewById(R.id.frameTypeSpinner), "Select Frame Types", "Filter glasses by type.")
-                                .cancelable(false)
                                 .drawShadow(true)
-                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
                         TapTarget.forView(findViewById(R.id.capture_button), "Capture Button", "This circle of magic captures your moment of glory. Click it, and say 'Cheese!'... or 'I look fabulous!'")
-                                .cancelable(false)
                                 .drawShadow(true)
-                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
                         TapTarget.forView(findViewById(R.id.last_photo_image_view), "Photo Manager", "Lastly, the Photo Manager. View and manage your photos here. Browse through your saved images and delete unwanted photos effortlessly.")
-                                .cancelable(false)
                                 .drawShadow(true)
-                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
                         TapTarget.forView(findViewById(R.id.replay_tutorial_Button), "Replay Tutorial", "Missed out on becoming a glasses guru the first time? Fear not! Hit this button to replay the tutorial and level up your glasses game!")
-                                .cancelable(false)
                                 .drawShadow(true)
-                                .outerCircleColor(R.color.gray_blue_semi_transparent)
+                                .outerCircleColor(primaryColorBackgroundTransparent)
+                                .textColor(primaryOnColor)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true)
@@ -2471,7 +3136,6 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                     @Override
                     public void onSequenceFinish() {
                         // Save the preference to not show the tutorial again
-                        PrefManager prefManager = new PrefManager(CameraFaceActivity.this);
                         prefManager.setFirstTimeLaunch(false);
                     }
 
@@ -2482,32 +3146,49 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
                     @Override
                     public void onSequenceCanceled(TapTarget lastTarget) {
-                        // Called when the sequence is canceled
+                        prefManager.setFirstTimeLaunch(false);
                     }
                 });
 
         sequence.start();
     }
 
+    private void showWelcomeDialog() {
+        View welcomeDialogView = getLayoutInflater().inflate(R.layout.dialog_text_view, null);
+        TextView content_TextView = welcomeDialogView.findViewById(R.id.content_TextView);
+        ImageView icon_ImageView = welcomeDialogView.findViewById(R.id.icon_ImageView);
+        icon_ImageView.setVisibility(View.VISIBLE);
+
+        content_TextView.setText(Html.fromHtml(getString(R.string.welcome_message), Html.FROM_HTML_MODE_LEGACY));
+
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setView(welcomeDialogView)
+                .setPositiveButton("Begin Tutorial", (dialog, which) -> showTutorial())
+                .setNegativeButton("Cancel", (dialog, which) -> {
+                    dialog.dismiss();
+                    prefManager.setFirstTimeLaunch(false);
+                });
+
+        androidx.appcompat.app.AlertDialog aboutDialog = builder.create();
+        aboutDialog.show();
+    }
+
     private void showMoreOptionsTutorial() {
         TapTargetSequence sequence = new TapTargetSequence(this)
                 .targets(
-                        TapTarget.forView(findViewById(R.id.scaleIcon), "Reset Buttons: Scale", "You can reset the sliders to default for each buttons here!")
-                                .cancelable(false)
+                        TapTarget.forView(findViewById(R.id.scaleIcon), "Adjust Size", "Resize the glasses to fit perfectly on your face.")
                                 .drawShadow(true)
                                 .outerCircleColor(R.color.gray_blue_semi_transparent)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
-                        TapTarget.forView(findViewById(R.id.yIcon), "Reset Buttons: Move up and down", "You can reset the sliders to default for each buttons here!")
-                                .cancelable(false)
+                        TapTarget.forView(findViewById(R.id.yIcon), "Adjust Height", "Move the glasses up or down to align with your face.")
                                 .drawShadow(true)
                                 .outerCircleColor(R.color.gray_blue_semi_transparent)
                                 .tintTarget(true)
                                 .transparentTarget(true)
                                 .cancelable(true),
-                        TapTarget.forView(findViewById(R.id.rotationIcon), "Reset Buttons: Rotation", "You can reset the sliders to default for each buttons here!")
-                                .cancelable(false)
+                        TapTarget.forView(findViewById(R.id.rotationIcon), "Rotate", "Rotate the glasses to match the angle of your face.")
                                 .drawShadow(true)
                                 .outerCircleColor(R.color.gray_blue_semi_transparent)
                                 .tintTarget(true)
@@ -2517,7 +3198,6 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                     @Override
                     public void onSequenceFinish() {
                         // Save the preference to not show the tutorial again
-                        PrefManager prefManager = new PrefManager(CameraFaceActivity.this);
                         prefManager.setFirstTimeLaunchMoreOptions(false);
                     }
 
@@ -2528,7 +3208,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
                     @Override
                     public void onSequenceCanceled(TapTarget lastTarget) {
-                        // Called when the sequence is canceled
+                        prefManager.setFirstTimeLaunchMoreOptions(false);
                     }
                 });
 
@@ -2574,6 +3254,7 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
 
     private void detectFaceShape(Bitmap bitmap) {
         if (faceShapeClassifier != null) {
+
             String faceShape = faceShapeClassifier.classifyFace(bitmap);
             runOnUiThread(() -> {
                 if(!faceShapeClassifier.noToast) {
@@ -2586,16 +3267,18 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                             if(face_type_Spinner.getSelectedItemPosition() != 0) {
                                 if (!filteredGlassesObjName.isEmpty()) {
                                     if (filteredGlassesObjName.size() > 1) {
-                                        updateGlassesModel(filteredGlassesObjName.get(1), filteredTempleObjName.get(1), filteredLensesObjName.get(1), filteredGlassesType.get(1), filteredPadsObjName.get(1), filteredTransparency.get(1));
+                                        updateGlassesModel(filteredGlassesObjName.get(1), filteredTempleObjName.get(1), filteredLensesObjName.get(1), filteredGlassesType.get(1), filteredPadsObjName.get(1), filteredTransparency.get(1), filteredIsDownloaded.get(1));
                                     } else {
-                                        updateGlassesModel(filteredGlassesObjName.get(0), filteredTempleObjName.get(0), filteredLensesObjName.get(0), filteredGlassesType.get(0), filteredPadsObjName.get(0), filteredTransparency.get(0));
+                                        updateGlassesModel(filteredGlassesObjName.get(0), filteredTempleObjName.get(0), filteredLensesObjName.get(0), filteredGlassesType.get(0), filteredPadsObjName.get(0), filteredTransparency.get(0), filteredIsDownloaded.get(0));
                                     }
                                 } else {
                                     Toast.makeText(this, "No glasses available for the selected frame type.", Toast.LENGTH_SHORT).show();
                                 }
                             }
+
                             capture_button.completeLoading();
                         }, 100);
+
                     } catch (ArrayIndexOutOfBoundsException e) {
 
                     }
@@ -2636,5 +3319,139 @@ public class CameraFaceActivity extends AppCompatActivity implements GLSurfaceVi
                 (int)(color[1] * 255),
                 (int)(color[2] * 255)
         );
+    }
+
+    private void updateAllMessagesAsSeen(String senderRoom, String currentUserId) {
+        DatabaseReference dbReferenceSender = FirebaseDatabase.getInstance(PrefManager.FIREBASE_DATABASE_URL).getReference("chats").child(senderRoom);
+        dbReferenceSender.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+                    MessageModel message = dataSnapshot.getValue(MessageModel.class);
+                    if (message != null && !message.getSenderId().equals(currentUserId)) {
+                        String messageId = dataSnapshot.getKey();
+                        dbReferenceSender.child(messageId).child("seen").setValue(true)
+                                .addOnSuccessListener(aVoid -> {
+                                    // Successfully updated message as seen
+                                })
+                                .addOnFailureListener(e -> {
+                                    // Failed to update message
+                                });
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                // Handle error
+            }
+        });
+    }
+
+    private int countUnseenMessages(List<MessageModel> messages, String senderId) {
+        int count = 0;
+        for (MessageModel message : messages) {
+            if (!message.isSeen() && !message.getSenderId().equals(senderId)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @Override
+    public void onItemClick(int position) {
+        currentGlassesPosition = position;
+    }
+
+    public void hideLoadingIndicator() {
+        runOnUiThread(() -> {
+            loadingIndicator.setVisibility(View.GONE);
+        });
+    }
+
+    public void toggleRecyclerViewFullscreen() {
+        fullscreenRecyclerView = !fullscreenRecyclerView;
+
+        if(fullscreenRecyclerView) {
+            int heightInDp = 500; // Desired height in dp
+            float scale = getResources().getDisplayMetrics().density; // Get display density
+            int targetHeight = (int) (heightInDp * scale + 0.5f); // Convert dp to pixels
+
+            // Create a TransitionManager to handle the layout transition
+            TransitionManager.beginDelayedTransition((ViewGroup) linearLayout.getParent(), new ChangeBounds());
+
+            // Update the layout parameters
+            ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) linearLayout.getLayoutParams();
+            params.height = targetHeight;
+            linearLayout.setLayoutParams(params);
+
+            fullscreen_Button.setImageResource(R.drawable.circle_fullscreen_exit_button);
+
+            if(shownMoreSettings) {
+                more_settings_layout.animate()
+                        .alpha(0f)
+                        .setDuration(300)
+                        .withEndAction(() -> {
+                            more_settings_layout.setVisibility(View.GONE);
+                            shownMoreSettings = false;
+                        });
+            }
+        } else {
+            int heightInDp = 100; // Desired height in dp
+            float scale = getResources().getDisplayMetrics().density; // Get display density
+            int targetHeight = (int) (heightInDp * scale + 0.5f); // Convert dp to pixels
+
+            // Create a TransitionManager to handle the layout transition
+            TransitionManager.beginDelayedTransition((ViewGroup) linearLayout.getParent(), new ChangeBounds());
+
+            // Update the layout parameters
+            ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) linearLayout.getLayoutParams();
+            params.height = targetHeight;
+            linearLayout.setLayoutParams(params);
+
+            fullscreen_Button.setImageResource(R.drawable.circle_fullscreen_button);
+
+            if(!shownMoreSettings) {
+                more_settings_layout.setVisibility(View.VISIBLE);
+                shownMoreSettings = true;
+                more_settings_layout.setVisibility(View.VISIBLE);
+                more_settings_layout.setAlpha(0f);
+                more_settings_layout.animate()
+                        .alpha(1f)
+                        .setDuration(300)
+                        .withEndAction(() -> shownMoreSettings = true);
+            }
+        }
+    }
+
+    public Bitmap adjustBrightnessContrast(Bitmap bitmap, float brightness, float contrast) {
+        Bitmap adjustedBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), bitmap.getConfig());
+        Canvas canvas = new Canvas(adjustedBitmap);
+        Paint paint = new Paint();
+
+        ColorMatrix colorMatrix = new ColorMatrix();
+
+        // Adjust contrast
+        float scale = contrast; // Contrast factor
+        colorMatrix.set(new float[]{
+                scale, 0, 0, 0, 0,  // Red channel
+                0, scale, 0, 0, 0,  // Green channel
+                0, 0, scale, 0, 0,  // Blue channel
+                0, 0, 0, 1, 0       // Alpha channel
+        });
+
+        // Adjust brightness (add offset to RGB channels)
+        float translate = brightness; // Brightness offset
+        colorMatrix.postConcat(new ColorMatrix(new float[]{
+                1, 0, 0, 0, translate,  // Red channel
+                0, 1, 0, 0, translate,  // Green channel
+                0, 0, 1, 0, translate,  // Blue channel
+                0, 0, 0, 1, 0          // Alpha channel
+        }));
+
+        paint.setColorFilter(new ColorMatrixColorFilter(colorMatrix));
+        canvas.drawBitmap(bitmap, 0, 0, paint);
+
+        return adjustedBitmap;
     }
 }

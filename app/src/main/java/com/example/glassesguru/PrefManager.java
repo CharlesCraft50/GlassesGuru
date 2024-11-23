@@ -11,11 +11,93 @@ public class PrefManager {
     private static final String IS_FIRST_TIME_LAUNCH = "IsFirstTimeLaunch";
     private static final String IS_FIRST_TIME_LAUNCH_MORE_OPTIONS = "IsFirstTimeLaunchMoreOptions";
     private static final String KEY_FAVORITES = "favorites";
+    private static final String USERUID = "UserUID";
+    private static final String IS_ADMIN = "IsAdmin";
+    private static final String EMAIL = "glassesguru.official@gmail.com";
+    private static final String PASSWORD = "grp3g3";
+    public static final String FIREBASE_DATABASE_URL = "https://glassesguru-f7296-default-rtdb.asia-southeast1.firebasedatabase.app/";
+    private static final String IS_NEW_USER = "IsNewUser";
+    private static final String FIRST_TERMS_AND_CONDITIONS = "FirstTermsAndConditions";
+    private static final String KEY_ALL_FILES_DOWNLOADED = "AllFilesDownloaded";
+    private static final String KEY_GLASSES_COUNT_DOWNLOADED = "GlassesCountDownloaded";
+    private static final String KEY_THEME_COLOR = "ThemeColor";
 
     public PrefManager(Context context) {
         this.context = context;
         pref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         editor = pref.edit();
+    }
+
+    public void setThemeColor(String color) {
+        editor.putString(KEY_THEME_COLOR, color);
+        editor.commit();
+    }
+
+    public String getThemeColor() {
+        return pref.getString(KEY_THEME_COLOR, "slate");
+    }
+
+    public void setGlassesCountDownloaded(int count) {
+        editor.putInt(KEY_GLASSES_COUNT_DOWNLOADED, count);
+        editor.commit();
+    }
+
+    public int getGlassesCountDownloaded() {
+        return pref.getInt(KEY_GLASSES_COUNT_DOWNLOADED, 0);
+    }
+
+    public void setAllFilesDownloaded(boolean isAllFilesDownloaded) {
+        editor.putBoolean(KEY_ALL_FILES_DOWNLOADED, isAllFilesDownloaded);
+        editor.commit();
+
+    }
+
+    public boolean isAllFilesDownloaded() {
+        return pref.getBoolean(KEY_ALL_FILES_DOWNLOADED, false);
+    }
+
+    public void setFirstTermsAndConditions(boolean isFirstTime) {
+        editor.putBoolean(FIRST_TERMS_AND_CONDITIONS, isFirstTime);
+        editor.commit();
+    }
+
+    public boolean isFirstTermsAndConditions() {
+        return pref.getBoolean(FIRST_TERMS_AND_CONDITIONS, true);
+    }
+
+    public void setNewUser(boolean isNewUser) {
+        editor.putBoolean(IS_NEW_USER, isNewUser);
+        editor.commit();
+    }
+
+    public boolean isNewUser() {
+        return pref.getBoolean(IS_NEW_USER, true);
+    }
+
+    public String getEmail() {
+        return EMAIL;
+    }
+
+    public String getPassword() {
+        return PASSWORD;
+    }
+
+    public boolean isAdmin() {
+        return pref.getBoolean(IS_ADMIN, false);
+    }
+
+    public void setAdmin(boolean isAdmin) {
+        editor.putBoolean(IS_ADMIN, isAdmin);
+        editor.commit();
+    }
+
+    public void setUserUID(String userUID) {
+        editor.putString(USERUID, userUID);
+        editor.commit();
+    }
+
+    public String getUserUID() {
+        return pref.getString(USERUID, "");
     }
 
     public void setFirstTimeLaunch(boolean isFirstTime) {

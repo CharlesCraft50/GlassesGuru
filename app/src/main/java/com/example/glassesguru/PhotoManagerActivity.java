@@ -3,6 +3,7 @@ package com.example.glassesguru;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
@@ -51,7 +52,7 @@ public class PhotoManagerActivity extends AppCompatActivity implements PhotoAdap
         recyclerView.setAdapter(photoAdapter);
 
         loadPhotos();
-        if(photoList.size() == 1) {
+        if(photoList.size() == 0) {
             no_image_Layout.setVisibility(View.VISIBLE);
         }
     }
@@ -67,22 +68,13 @@ public class PhotoManagerActivity extends AppCompatActivity implements PhotoAdap
         }
 
         File[] files = directory.listFiles();
-
         if (files == null || files.length == 0) {
             Toast.makeText(this, "No photos found", Toast.LENGTH_SHORT).show();
             return;
         }
 
         // Sort photos by date (latest first)
-        Arrays.sort(files, new Comparator<File>() {
-            @Override
-            public int compare(File file1, File file2) {
-                long lastModified1 = file1.lastModified();
-                long lastModified2 = file2.lastModified();
-                // Sort in descending order (latest first)
-                return Long.compare(lastModified2, lastModified1);
-            }
-        });
+        Arrays.sort(files, (file1, file2) -> Long.compare(file2.lastModified(), file1.lastModified()));
 
         // Clear the existing photo list
         photoList.clear();
@@ -90,8 +82,8 @@ public class PhotoManagerActivity extends AppCompatActivity implements PhotoAdap
         // Add the retrieved photo files to the photoList
         photoList.addAll(Arrays.asList(files));
 
-        // Notify the adapter that the data set has changed
-        photoAdapter.notifyDataSetChanged();
+        // Rebind the adapter
+        photoAdapter.notifyDataSetChanged();    // Notify adapter of data changes
     }
 
     @Override
@@ -118,7 +110,7 @@ public class PhotoManagerActivity extends AppCompatActivity implements PhotoAdap
             }
 
             // Check if the photo list has only one item after deletion
-            if (photoList.size() == 1) {
+            if (photoList.size() == 0) {
                 no_image_Layout.setVisibility(View.VISIBLE);
             }
         } else {

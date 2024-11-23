@@ -8,6 +8,8 @@ import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.util.Log;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -88,7 +90,7 @@ public class ObjectRenderer {
   private float[] uvTransform = null;
   private int depthTextureId;
 
-  public void createOnGlThread(Context context, String objAssetName, String diffuseTextureAssetName)
+  public void createOnGlThread(Context context, String objAssetName, String diffuseTextureAssetName, boolean isLocal)
           throws IOException {
     compileAndLoadShaderProgram(context);
 
@@ -108,9 +110,13 @@ public class ObjectRenderer {
 
     ShaderUtil.checkGLError(TAG, "Texture loading");
 
-    InputStream objInputStream = context.getAssets().open(objAssetName);
+    InputStream objInputStream;
+    if (isLocal) {
+      objInputStream = new FileInputStream(new File(objAssetName));
+    } else {
+      objInputStream = context.getAssets().open(objAssetName);
+    }
     Obj obj = ObjReader.read(objInputStream);
-
     obj = ObjUtils.convertToRenderable(obj);
 
     IntBuffer wideIndices = ObjData.getFaceVertexIndices(obj, 3);

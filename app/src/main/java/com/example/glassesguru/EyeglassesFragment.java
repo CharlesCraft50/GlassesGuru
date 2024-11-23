@@ -1,12 +1,14 @@
 package com.example.glassesguru;
 
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
@@ -16,8 +18,7 @@ import androidx.fragment.app.Fragment;
 
 public class EyeglassesFragment extends Fragment {
     private TextView glassesTitle, glassesFrameType, glassesPrice, glassesSize, glassesDescription;
-    private View glassesColorCard, lensesColorCard;
-    private LinearLayout lensesColorLayout;
+    private View glassesFrameColorCard, glassesLensesColorCard, glassesTempleColorCard, glassesTempleTipColorCard;
     private PrefManager prefManager;
     private RadioGroup rgFunctionOptions;
     private static final String ARG_TITLE = "Title";
@@ -28,6 +29,8 @@ public class EyeglassesFragment extends Fragment {
     private static final String ARG_DESCRIPTION = "Description";
     private static final String ARG_COLOR = "Color";
     private static final String ARG_LENSES_COLOR = "LensesColor";
+    private static final String ARG_TEMPLE_COLOR = "TempleColor";
+    private static final String ARG_TEMPLE_TIP_COLOR = "TempleTipColor";
     private static final String ARG_ID = "ID";
 
     // TODO: Rename and change types of parameters
@@ -39,11 +42,19 @@ public class EyeglassesFragment extends Fragment {
     private String Description;
     private int SelectedColor;
     private int LensesColor;
+    private int TempleColor;
+    private int TempleTipColor;
     private String ID;
 
     public EyeglassesFragment() {
         // Required empty public constructor
     }
+
+    public interface OnRadioButtonSelectedListener {
+        void onRadioButtonSelected(String text);
+    }
+
+    private OnRadioButtonSelectedListener listener;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -57,6 +68,8 @@ public class EyeglassesFragment extends Fragment {
             Description = getArguments().getString(ARG_DESCRIPTION);
             SelectedColor = getArguments().getInt(ARG_COLOR);
             LensesColor = getArguments().getInt(ARG_LENSES_COLOR);
+            TempleColor = getArguments().getInt(ARG_TEMPLE_COLOR);
+            TempleTipColor = getArguments().getInt(ARG_TEMPLE_TIP_COLOR);
             ID = getArguments().getString(ARG_ID);
         }
     }
@@ -70,12 +83,46 @@ public class EyeglassesFragment extends Fragment {
         glassesPrice = view.findViewById(R.id.glassesPrice);
         glassesSize = view.findViewById(R.id.glassesSize);
         glassesDescription = view.findViewById(R.id.glassesDescription);
-        glassesColorCard = view.findViewById(R.id.glassesColorCard);
-        lensesColorCard = view.findViewById(R.id.lensesColorCard);
-        lensesColorLayout = view.findViewById(R.id.lensesColorLayout);
+        glassesFrameColorCard = view.findViewById(R.id.glassesFrameColorCard);
+        glassesLensesColorCard = view.findViewById(R.id.glassesLensesColorCard);
+        glassesTempleColorCard = view.findViewById(R.id.glassesTempleColorCard);
+        glassesTempleTipColorCard = view.findViewById(R.id.glassesTempleTipColorCard);
         prefManager = new PrefManager(requireContext());
-        setData(Title, FrameType, Type, Price, Size, Description, SelectedColor, LensesColor, ID);
+        setData(Title, FrameType, Type, Price, Size, Description, SelectedColor, LensesColor, TempleColor, TempleTipColor, ID);
+
+        // Set a listener for RadioGroup changes
+        rgFunctionOptions.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (checkedId != -1) {
+                    RadioButton checkedRadioButton = view.findViewById(checkedId);
+                    String text = checkedRadioButton.getText().toString();
+                    if (listener != null) {
+                        listener.onRadioButtonSelected(text);
+                    }
+                }
+            }
+        });
+
+        // Initialize the listener with the default checked value
+        String initialText = getCheckedRadioButtonText();
+        if (listener != null && !initialText.isEmpty()) {
+            listener.onRadioButtonSelected(initialText);
+        }
+
         return view;
+    }
+
+    public String getCheckedRadioButtonText() {
+        if (getView() != null) {
+            RadioGroup radioGroup = getView().findViewById(R.id.rgFunctionOptions);
+            int checkedId = radioGroup.getCheckedRadioButtonId();
+            if (checkedId != -1) {
+                RadioButton checkedRadioButton = getView().findViewById(checkedId);
+                return checkedRadioButton.getText().toString();
+            }
+        }
+        return "";
     }
 
     @Override
@@ -83,7 +130,7 @@ public class EyeglassesFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
     }
 
-    public void setData(String title, String frameType, String type, String price, float size, String description, int color, int lensesColor, String ID) {
+    public void setData(String title, String frameType, String type, String price, float size, String description, int color, int lensesColor, int templeColor, int templeTipColor, String ID) {
         glassesTitle.setText(title);
         glassesFrameType.setText(frameType);
 
@@ -104,6 +151,42 @@ public class EyeglassesFragment extends Fragment {
 
         glassesDescription.setText(description);
 
+        glassesFrameColorCard.setBackgroundColor(Color.parseColor(showColor(color)));
+
+        // Check if the LensesColor exists
+        if (lensesColor != 0x00000000) {
+            glassesLensesColorCard.setVisibility(View.VISIBLE);
+            glassesLensesColorCard.setBackgroundColor(lensesColor);
+        } else {
+            glassesLensesColorCard.setVisibility(View.GONE);
+        }
+
+        // Check if the TempleColor exists
+        if (templeColor != 0x00000000) {
+            glassesTempleColorCard.setVisibility(View.VISIBLE);
+            glassesTempleColorCard.setBackgroundColor(templeColor);
+        } else {
+            glassesTempleColorCard.setVisibility(View.GONE);
+        }
+
+        // Check if the TempleTipColor exists
+        if (templeTipColor != 0x00000000) {
+            glassesTempleTipColorCard.setVisibility(View.VISIBLE);
+            glassesTempleTipColorCard.setBackgroundColor(templeTipColor);
+        } else {
+            glassesTempleTipColorCard.setVisibility(View.GONE);
+        }
+
+        rgFunctionOptions.check(R.id.rbClear);
+
+        if ("Eyeglasses".equalsIgnoreCase(type)) {
+            rgFunctionOptions.check(R.id.rbClear);
+        } else if ("Sunglasses".equalsIgnoreCase(type)) {
+            rgFunctionOptions.check(R.id.rbSunglasses);
+        }
+    }
+
+    private String showColor(int color) {
         float[] customColor = new float[]{0f, 0f, 0f, 1f};
 
         if (color != 0x00000000) {
@@ -116,21 +199,16 @@ public class EyeglassesFragment extends Fragment {
                 (int) (customColor[1] * 255),
                 (int) (customColor[2] * 255));
 
-        glassesColorCard.setBackgroundColor(Color.parseColor(hexColor));
+        return hexColor;
+    }
 
-        // Check if the LensesColor exists
-        if (lensesColor != 0x00000000) {
-            lensesColorLayout.setVisibility(View.VISIBLE);
-            lensesColorCard.setBackgroundColor(lensesColor);
-        } else {
-            lensesColorLayout.setVisibility(View.GONE);
-        }
-
-
-        if ("Eyeglasses".equalsIgnoreCase(type)) {
-            rgFunctionOptions.check(R.id.rbClear);
-        } else if ("Sunglasses".equalsIgnoreCase(type)) {
-            rgFunctionOptions.check(R.id.rbSunglasses);
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        try {
+            listener = (OnRadioButtonSelectedListener) context;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(context.toString() + " must implement OnRadioButtonSelectedListener");
         }
     }
 }

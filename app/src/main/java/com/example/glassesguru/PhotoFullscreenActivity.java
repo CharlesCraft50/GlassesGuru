@@ -38,6 +38,15 @@ public class PhotoFullscreenActivity extends AppCompatActivity {
             Glide.with(this).load(photoFile).into(photoImageView);
         }
 
+        String photoPathUrl = getIntent().getStringExtra("photoPathUrl");
+        if(photoPathUrl != null) {
+            Glide.with(this)
+                    .load(photoPathUrl)
+                    .placeholder(R.drawable.loading_circle) // Placeholder while the image loads
+                    .error(R.drawable.ic_error)             // Image displayed on error
+                    .into(photoImageView);
+        }
+
         back_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
